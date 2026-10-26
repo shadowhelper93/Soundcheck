@@ -214,7 +214,7 @@ type ManifestResolvedRole struct {
 	Reason string `json:"reason"`
 }
 
-// Manifest is the capability manifest describing agents and role assignments.
+// Manifest captures the complete capability manifest payload.
 type Manifest struct {
 	SchemaVersion string                        `json:"schemaVersion"`
 	GeneratedAt   string                        `json:"generatedAt"`
@@ -223,3 +223,29 @@ type Manifest struct {
 	Agents        map[string]ManifestAgent      `json:"agents"`
 	ResolvedRoles map[Role]ManifestResolvedRole `json:"resolvedRoles"`
 }
+
+// ProbePolicy configures probe behavior.
+type ProbePolicy struct {
+	Deep       bool    `json:"deep" yaml:"deep"`
+	TTLMinutes float64 `json:"ttl_minutes" yaml:"ttl_minutes"`
+}
+
+// Policy specifies orchestrator policy constraints and thresholds.
+type Policy struct {
+	RequireDistinctVendor []Role      `json:"require_distinct_vendor" yaml:"require_distinct_vendor"`
+	MaxCostUSDPerRun      float64     `json:"max_cost_usd_per_run,omitempty" yaml:"max_cost_usd_per_run,omitempty"`
+	Probe                 ProbePolicy `json:"probe,omitempty" yaml:"probe,omitempty"`
+}
+
+// Config represents the top-level Soundcheck configuration (agent-doctor.yaml).
+type Config struct {
+	Version int               `json:"version" yaml:"version"`
+	Roles   map[Role][]string `json:"roles" yaml:"roles"`
+	Policy  Policy            `json:"policy" yaml:"policy"`
+}
+
+// ResolverExplanationStep aliases ResolverStep for compatibility.
+type ResolverExplanationStep = ResolverStep
+
+// DetailedResolution aliases Assignment for compatibility.
+type DetailedResolution = Assignment
