@@ -40,10 +40,33 @@ type resolveContext struct {
 	options         resolveOptions
 }
 
+type candidate struct {
+	raw       string
+	agentID   string
+	modelSpec string
+	index     int
+}
+
 type candidateSelection struct {
 	adapter   domain.Adapter
 	modelID   string
 	reasoning string
+}
+
+type evalAccumulator struct {
+	steps     []domain.ResolverStep
+	fallbacks []string
+}
+
+func (acc *evalAccumulator) recordSkip(step domain.ResolverStep, fallback string) {
+	acc.steps = append(acc.steps, step)
+	if fallback != "" {
+		acc.fallbacks = append(acc.fallbacks, fallback)
+	}
+}
+
+func (acc *evalAccumulator) recordSelect(step domain.ResolverStep) {
+	acc.steps = append(acc.steps, step)
 }
 
 // DefaultConfig returns the canonical default Soundcheck configuration.
@@ -122,61 +145,62 @@ func Resolve(cfg domain.Config, adapters []domain.Adapter, now time.Time, opts .
 }
 
 func resolveRole(role domain.Role, candidates []string, ctx *resolveContext) domain.DetailedResolution {
-	fallbackChain := make([]string, 0)
-	steps := make([]domain.ResolverStep, 0)
+	acc := evalAccumulator{
+		steps:     make([]domain.ResolverStep, 0),
+		fallbacks: make([]string, 0),
+	}
 
-	for i, cand := range candidates {
-		sel, ok := evalCandidate(cand, i, role, ctx, &steps, &fallbackChain)
+	for i, raw := range candidates {
+		cand := parseCandidate(raw, i)
+		sel, ok := evalCandidate(cand, role, ctx, &acc)
 		if ok {
 			ctx.assignedVendors[role] = sel.adapter.Vendor
-			return buildSelectedResolution(role, sel, fallbackChain, steps)
+			return buildSelectedResolution(role, sel, acc.fallbacks, acc.steps)
 		}
 	}
 
-	return buildFallbackResolution(role, fallbackChain, steps)
+	return buildFallbackResolution(role, acc.fallbacks, acc.steps)
 }
 
-func evalCandidate(cand string, idx int, role domain.Role, ctx *resolveContext, steps *[]domain.ResolverStep, fallbacks *[]string) (candidateSelection, bool) {
-	agentID, modelSpec := parseCandidate(cand)
-	adapter, ok := ctx.adapterMap[agentID]
+func evalCandidate(cand candidate, role domain.Role, ctx *resolveContext, acc *evalAccumulator) (candidateSelection, bool) {
+	adapter, ok := ctx.adapterMap[cand.agentID]
 	if !ok {
-		*steps = append(*steps, missingAdapterStep(cand, agentID, modelSpec))
+		acc.recordSkip(missingAdapterStep(cand), "")
 		return candidateSelection{}, false
 	}
 
-	step, fb, pass := runCandidateChecks(adapter, cand, modelSpec, role, ctx)
+	step, fb, pass := runCandidateChecks(adapter, cand, role, ctx)
 	if !pass {
-		*steps = append(*steps, step)
-		*fallbacks = append(*fallbacks, fb)
+		acc.recordSkip(step, fb)
 		return candidateSelection{}, false
 	}
 
-	sel, step := selectCandidate(adapter, cand, modelSpec, idx)
-	*steps = append(*steps, step)
+	sel, step := selectCandidate(adapter, cand)
+	acc.recordSelect(step)
 	return sel, true
 }
 
-func runCandidateChecks(adapter domain.Adapter, cand, spec string, role domain.Role, ctx *resolveContext) (domain.ResolverStep, string, bool) {
-	if step, fb, pass := checkCooldown(adapter, cand, spec, ctx); !pass {
+func runCandidateChecks(adapter domain.Adapter, cand candidate, role domain.Role, ctx *resolveContext) (domain.ResolverStep, string, bool) {
+	if step, fb, pass := checkCooldown(adapter, cand, ctx); !pass {
 		return step, fb, false
 	}
-	if step, fb, pass := checkPresence(adapter, cand, spec); !pass {
+	if step, fb, pass := checkPresence(adapter, cand); !pass {
 		return step, fb, false
 	}
-	if step, fb, pass := checkAuth(adapter, cand, spec); !pass {
+	if step, fb, pass := checkAuth(adapter, cand); !pass {
 		return step, fb, false
 	}
-	if step, fb, pass := checkVendorConflict(adapter, cand, spec, role, ctx); !pass {
+	if step, fb, pass := checkVendorConflict(adapter, cand, role, ctx); !pass {
 		return step, fb, false
 	}
 	return domain.ResolverStep{}, "", true
 }
 
-func selectCandidate(adapter domain.Adapter, cand, modelSpec string, idx int) (candidateSelection, domain.ResolverStep) {
-	targetModelID := concreteModelID(modelSpec, adapter)
-	reasoning := fmt.Sprintf("Selected candidate #%d (%s). Passed L0 presence, L1 auth, and vendor diversity constraints.", idx+1, cand)
+func selectCandidate(adapter domain.Adapter, cand candidate) (candidateSelection, domain.ResolverStep) {
+	targetModelID := concreteModelID(cand.modelSpec, adapter)
+	reasoning := fmt.Sprintf("Selected candidate #%d (%s). Passed L0 presence, L1 auth, and vendor diversity constraints.", cand.index+1, cand.raw)
 	step := domain.ResolverStep{
-		Candidate: cand,
+		Candidate: cand.raw,
 		AgentID:   adapter.ID,
 		ModelID:   targetModelID,
 		Status:    domain.StepStatusSelected,
@@ -189,67 +213,55 @@ func selectCandidate(adapter domain.Adapter, cand, modelSpec string, idx int) (c
 	}, step
 }
 
-func checkPresence(adapter domain.Adapter, cand, modelSpec string) (domain.ResolverStep, string, bool) {
+func checkPresence(adapter domain.Adapter, cand candidate) (domain.ResolverStep, string, bool) {
 	l0, hasL0 := adapter.Probes[domain.TierL0]
 	if adapter.Installed && (!hasL0 || l0.Status != "failed") {
 		return domain.ResolverStep{}, "", true
 	}
-	modelID := modelSpec
-	if modelID == "" {
-		modelID = "*"
-	}
 	step := domain.ResolverStep{
-		Candidate: cand,
+		Candidate: cand.raw,
 		AgentID:   adapter.ID,
-		ModelID:   modelID,
+		ModelID:   candidateModelID(cand.modelSpec),
 		Status:    domain.StepStatusSkippedUninstalled,
 		Details:   "L0 Presence check failed: binary not found in PATH.",
 	}
-	return step, cand + " (not installed)", false
+	return step, cand.raw + " (not installed)", false
 }
 
-func checkCooldown(adapter domain.Adapter, cand, modelSpec string, ctx *resolveContext) (domain.ResolverStep, string, bool) {
+func checkCooldown(adapter domain.Adapter, cand candidate, ctx *resolveContext) (domain.ResolverStep, string, bool) {
 	nowMs := ctx.now.UnixMilli()
 	cooldownMs := cooldownTimestampMs(adapter.CooldownUntil)
 	inCooldown := (cooldownMs > nowMs) || (ctx.options.ForceCooldownAgentID == adapter.ID)
 	if !inCooldown {
 		return domain.ResolverStep{}, "", true
 	}
-	modelID := modelSpec
-	if modelID == "" {
-		modelID = "*"
-	}
 	rem := remainingCooldownMinutes(cooldownMs, nowMs)
 	step := domain.ResolverStep{
-		Candidate: cand,
+		Candidate: cand.raw,
 		AgentID:   adapter.ID,
-		ModelID:   modelID,
+		ModelID:   candidateModelID(cand.modelSpec),
 		Status:    domain.StepStatusSkippedCooldown,
 		Details:   fmt.Sprintf("In cooldown (%dm remaining) due to rate limit error.", rem),
 	}
-	return step, cand + " (cooldown)", false
+	return step, cand.raw + " (cooldown)", false
 }
 
-func checkAuth(adapter domain.Adapter, cand, modelSpec string) (domain.ResolverStep, string, bool) {
+func checkAuth(adapter domain.Adapter, cand candidate) (domain.ResolverStep, string, bool) {
 	l1, hasL1 := adapter.Probes[domain.TierL1]
 	if !hasL1 || (l1.Status != "failed" && l1.ErrorClass != domain.ErrorClassUnauthenticated) {
 		return domain.ResolverStep{}, "", true
 	}
-	modelID := modelSpec
-	if modelID == "" {
-		modelID = "*"
-	}
 	step := domain.ResolverStep{
-		Candidate: cand,
+		Candidate: cand.raw,
 		AgentID:   adapter.ID,
-		ModelID:   modelID,
+		ModelID:   candidateModelID(cand.modelSpec),
 		Status:    domain.StepStatusSkippedUnauth,
 		Details:   "L1 Auth check failed: credentials invalid or missing.",
 	}
-	return step, cand + " (unauthenticated)", false
+	return step, cand.raw + " (unauthenticated)", false
 }
 
-func checkVendorConflict(adapter domain.Adapter, cand, modelSpec string, role domain.Role, ctx *resolveContext) (domain.ResolverStep, string, bool) {
+func checkVendorConflict(adapter domain.Adapter, cand candidate, role domain.Role, ctx *resolveContext) (domain.ResolverStep, string, bool) {
 	req := ctx.policy.RequireDistinctVendor
 	if len(req) < 2 || role != req[1] {
 		return domain.ResolverStep{}, "", true
@@ -259,18 +271,14 @@ func checkVendorConflict(adapter domain.Adapter, cand, modelSpec string, role do
 	if vendorA == "" || vendorA != adapter.Vendor {
 		return domain.ResolverStep{}, "", true
 	}
-	modelID := modelSpec
-	if modelID == "" {
-		modelID = "*"
-	}
 	step := domain.ResolverStep{
-		Candidate: cand,
+		Candidate: cand.raw,
 		AgentID:   adapter.ID,
-		ModelID:   modelID,
+		ModelID:   candidateModelID(cand.modelSpec),
 		Status:    domain.StepStatusSkippedVendorConflict,
 		Details:   fmt.Sprintf("Policy require_distinct_vendor violated: %s is already from %s.", roleA, adapter.Vendor),
 	}
-	return step, fmt.Sprintf("%s (vendor conflict: %s)", cand, adapter.Vendor), false
+	return step, fmt.Sprintf("%s (vendor conflict: %s)", cand.raw, adapter.Vendor), false
 }
 
 func concreteModelID(modelSpec string, adapter domain.Adapter) string {
@@ -283,26 +291,35 @@ func concreteModelID(modelSpec string, adapter domain.Adapter) string {
 	return "default"
 }
 
-func missingAdapterStep(cand, agentID, modelSpec string) domain.ResolverStep {
-	modelID := modelSpec
-	if modelID == "" {
-		modelID = "*"
+func candidateModelID(modelSpec string) string {
+	if modelSpec == "" {
+		return "*"
 	}
+	return modelSpec
+}
+
+func missingAdapterStep(cand candidate) domain.ResolverStep {
 	return domain.ResolverStep{
-		Candidate: cand,
-		AgentID:   agentID,
-		ModelID:   modelID,
+		Candidate: cand.raw,
+		AgentID:   cand.agentID,
+		ModelID:   candidateModelID(cand.modelSpec),
 		Status:    domain.StepStatusSkippedUninstalled,
-		Details:   fmt.Sprintf("Adapter %q is not recognized or installed.", agentID),
+		Details:   fmt.Sprintf("Adapter %q is not recognized or installed.", cand.agentID),
 	}
 }
 
-func parseCandidate(cand string) (string, string) {
+func parseCandidate(cand string, idx int) candidate {
 	parts := strings.SplitN(cand, ":", 2)
-	if len(parts) == 1 {
-		return parts[0], ""
+	spec := ""
+	if len(parts) > 1 {
+		spec = parts[1]
 	}
-	return parts[0], parts[1]
+	return candidate{
+		raw:       cand,
+		agentID:   parts[0],
+		modelSpec: spec,
+		index:     idx,
+	}
 }
 
 func indexAdapters(adapters []domain.Adapter) map[string]domain.Adapter {
