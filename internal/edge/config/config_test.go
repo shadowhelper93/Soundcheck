@@ -139,6 +139,14 @@ func TestSemanticValidationPolicy(t *testing.T) {
 		}
 	})
 
+	t.Run("require_distinct_vendor with duplicate roles", func(t *testing.T) {
+		y := "version: 1\nroles:\n  primary: ['a']\npolicy:\n  require_distinct_vendor: [primary, primary]\n"
+		_, err := config.Parse([]byte(y))
+		if err == nil || !strings.Contains(err.Error(), "must not be duplicated") {
+			t.Fatalf("expected duplicate role error, got %v", err)
+		}
+	})
+
 	t.Run("require_distinct_vendor role missing from roles", func(t *testing.T) {
 		y := "version: 1\nroles:\n  primary: ['a']\n  reviewer: ['b']\npolicy:\n  require_distinct_vendor: [primary, missing]\n"
 		_, err := config.Parse([]byte(y))

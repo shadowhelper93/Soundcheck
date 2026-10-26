@@ -120,7 +120,12 @@ func validatePolicy(raw rawConfig) error {
 	if len(raw.Policy.RequireDistinctVendor) < 2 {
 		return errors.New("policy.require_distinct_vendor must specify at least 2 roles")
 	}
+	seen := make(map[domain.Role]bool, len(raw.Policy.RequireDistinctVendor))
 	for _, r := range raw.Policy.RequireDistinctVendor {
+		if seen[r] {
+			return fmt.Errorf("policy.require_distinct_vendor role %q must not be duplicated", r)
+		}
+		seen[r] = true
 		if _, ok := raw.Roles[r]; !ok {
 			return fmt.Errorf("policy.require_distinct_vendor role %q does not exist in roles", r)
 		}

@@ -261,3 +261,40 @@ func TestConcurrency(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestTTLCachePruneDeduplicationAndRawStoreData(t *testing.T) {
+	tmpDir := t.TempDir()
+	fs, err := store.NewFileStore(tmpDir)
+	if err != nil {
+		t.Fatalf("NewFileStore failed: %v", err)
+	}
+	cache := store.NewTTLCache(fs)
+
+	// Add an expired item to both memory and store
+	_ = cache.Set("shared-exp", []byte("val"), 20*time.Millisecond)
+
+	// Add raw non-JSON data directly to store
+	if err := fs.Set("raw-key", []byte("plain non-json bytes")); err != nil {
+		t.Fatalf("Set raw data failed: %v", err)
+	}
+
+	time.Sleep(35 * time.Millisecond)
+
+	pruned, err := cache.Prune()
+	if err != nil {
+		t.Fatalf("Prune failed: %v", err)
+	}
+	// "shared-exp" exists in both memory and file store, must be counted as 1 pruned item
+	if pruned != 1 {
+		t.Errorf("expected exactly 1 item pruned, got %d", pruned)
+	}
+
+	// Raw non-JSON data in store must not be deleted and should load with ExpiresAt=0
+	got, ok, err := cache.Get("raw-key")
+	if err != nil || !ok {
+		t.Fatalf("expected raw-key to survive and load: ok=%v, err=%v", ok, err)
+	}
+	if string(got) != "plain non-json bytes" {
+		t.Errorf("expected plain bytes, got %q", string(got))
+	}
+}

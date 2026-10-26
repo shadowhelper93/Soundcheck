@@ -124,8 +124,12 @@ func AtomicWrite(path string, data []byte) error {
 		return fmt.Errorf("create temporary file: %w", err)
 	}
 	tmpName := tmp.Name()
+	closed := false
 	cleaned := false
 	defer func() {
+		if !closed {
+			_ = tmp.Close()
+		}
 		if !cleaned {
 			_ = os.Remove(tmpName)
 		}
@@ -134,6 +138,8 @@ func AtomicWrite(path string, data []byte) error {
 	if err := writeAndSync(tmp, data); err != nil {
 		return err
 	}
+	closed = true
+
 	if err := os.Rename(tmpName, path); err != nil {
 		return fmt.Errorf("atomic rename: %w", err)
 	}
@@ -143,11 +149,9 @@ func AtomicWrite(path string, data []byte) error {
 
 func writeAndSync(tmp *os.File, data []byte) error {
 	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
 		return fmt.Errorf("write temp file: %w", err)
 	}
 	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
 		return fmt.Errorf("sync temp file: %w", err)
 	}
 	if err := tmp.Close(); err != nil {
@@ -203,7 +207,7 @@ func (c *TTLCache) Get(key string) ([]byte, bool, error) {
 
 	if ok {
 		if c.isExpired(item, now) {
-			_ = c.Delete(key)
+			c.deleteIfExpired(key, item.ExpiresAt)
 			return nil, false, nil
 		}
 		return item.Value, true, nil
@@ -213,6 +217,19 @@ func (c *TTLCache) Get(key string) ([]byte, bool, error) {
 		return nil, false, nil
 	}
 	return c.loadFromStore(key, now)
+}
+
+func (c *TTLCache) deleteIfExpired(key string, expiry int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	item, ok := c.items[key]
+	if ok && item.ExpiresAt == expiry && c.isExpired(item, time.Now().UnixMilli()) {
+		delete(c.items, key)
+		if c.store != nil {
+			_ = c.store.Delete(key)
+		}
+	}
 }
 
 func (c *TTLCache) loadFromStore(key string, now int64) ([]byte, bool, error) {
@@ -226,17 +243,18 @@ func (c *TTLCache) loadFromStore(key string, now int64) ([]byte, bool, error) {
 
 	var item CacheItem
 	if err := json.Unmarshal(data, &item); err != nil {
-		_ = c.store.Delete(key)
-		return nil, false, nil
+		item = CacheItem{Value: data, ExpiresAt: 0}
 	}
 
 	if c.isExpired(item, now) {
-		_ = c.Delete(key)
+		c.deleteIfExpired(key, item.ExpiresAt)
 		return nil, false, nil
 	}
 
 	c.mu.Lock()
-	c.items[key] = item
+	if existing, ok := c.items[key]; !ok || c.isExpired(existing, time.Now().UnixMilli()) {
+		c.items[key] = item
+	}
 	c.mu.Unlock()
 	return item.Value, true, nil
 }
@@ -278,48 +296,48 @@ func (c *TTLCache) Delete(key string) error {
 	return nil
 }
 
-// Prune removes all expired items from memory and store.
+// Prune removes all expired items from memory and store without double counting.
 func (c *TTLCache) Prune() (int, error) {
 	now := time.Now().UnixMilli()
-	pruned := 0
+	pruned := make(map[string]struct{})
 
 	c.mu.Lock()
 	for k, item := range c.items {
 		if c.isExpired(item, now) {
 			delete(c.items, k)
-			pruned++
+			pruned[k] = struct{}{}
 		}
 	}
 	c.mu.Unlock()
 
 	if c.store != nil {
-		diskPruned, err := c.pruneStore(now)
-		if err != nil {
-			return pruned, err
+		if err := c.pruneStore(now, pruned); err != nil {
+			return len(pruned), err
 		}
-		pruned += diskPruned
 	}
-	return pruned, nil
+	return len(pruned), nil
 }
 
-func (c *TTLCache) pruneStore(now int64) (int, error) {
+func (c *TTLCache) pruneStore(now int64, pruned map[string]struct{}) error {
 	keys, err := c.store.Keys()
 	if err != nil {
-		return 0, err
+		return err
 	}
-	pruned := 0
 	for _, k := range keys {
 		data, err := c.store.Get(k)
 		if err != nil {
 			continue
 		}
 		var item CacheItem
-		if err := json.Unmarshal(data, &item); err != nil || c.isExpired(item, now) {
+		if err := json.Unmarshal(data, &item); err != nil {
+			continue
+		}
+		if c.isExpired(item, now) {
 			_ = c.store.Delete(k)
-			pruned++
+			pruned[k] = struct{}{}
 		}
 	}
-	return pruned, nil
+	return nil
 }
 
 // SetJSON marshals val to JSON and caches it with ttl.
