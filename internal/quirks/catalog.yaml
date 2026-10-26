@@ -1,0 +1,156 @@
+# Soundcheck Known Quirks Catalog
+# Encodes upstream CLI anomalies, false exit codes, and defenses.
+version: "1"
+quirks:
+  - id: claude-79500
+    agentId: claude
+    name: "Claude Code Rate Limit False Exit 0"
+    docIssue: "Issue #79500 (anthropics/claude-code)"
+    category: false_exit_code
+    description: "API rate limits return subtype:\"success\" with is_error:true and exit code 0! Naive runners think the turn completed successfully."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/79500"
+    discoveredDate: "2026-06-12"
+    severity: critical
+    impact: "Silent workflow pipeline corruption, empty files marked as completed"
+    resolution: "Inspect JSON is_error and error.type, ignore shell exit code"
+    triggerExitCode: 0
+    triggerRegex: "(?i)(rate_limit|quota|5-hour)"
+    errorClass: rate_limited
+    rewrittenExitCode: 429
+    cooldownMinutes: 30
+    caughtLie: true
+
+  - id: claude-74761
+    agentId: claude
+    name: "Claude Code Mid-Task Exit 0"
+    docIssue: "Issue #74761 (anthropics/claude-code)"
+    category: false_exit_code
+    description: "Headless claude -p exits 0 while loop is mid-task (last assistant message has stop_reason: tool_use)."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/74761"
+    discoveredDate: "2026-05-18"
+    severity: high
+    impact: "Partial file edits left unstaged or uncommitted"
+    resolution: "Check stream-json end_turn event and diff_nonempty gate"
+    triggerExitCode: 0
+    triggerRegex: "\"stop_reason\":\\s*\"tool_use\""
+    errorClass: corrupted_state
+    caughtLie: true
+
+  - id: claude-95822
+    agentId: claude
+    name: "Claude Auth Polling Exhausts Refresh Tokens"
+    docIssue: "Issue #95822 (anthropics/claude-code)"
+    category: protocol_mismatch
+    description: "claude auth status can start OAuth token refresh and exit without saving, invalidating future session tokens."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/95822"
+    discoveredDate: "2026-07-01"
+    severity: high
+    impact: "Invalidated future session tokens on repeated health checks"
+    resolution: "Enforce TTL caching on auth status; do not poll frequently"
+    errorClass: unauthenticated
+
+  - id: codex-doctor-exit0
+    agentId: codex
+    name: "Codex Doctor False Exit 0 on Auth Failure"
+    docIssue: "Issue #54831 (openai/codex)"
+    category: silent_auth
+    description: "Diagnostics command returns exit 0 even when credentials are dead or expired. Must parse stdout JSON rather than exit code."
+    referenceUrl: "https://github.com/openai/codex/issues/54831"
+    discoveredDate: "2026-04-11"
+    severity: critical
+    impact: "False green status in CI runners followed by hard crash"
+    resolution: "Parse JSON doctor report; reject if status is FAILED"
+    triggerExitCode: 0
+    triggerRegex: "\"doctor_status\":\\s*\"FAILED\""
+    errorClass: unauthenticated
+    rewrittenExitCode: 401
+    caughtLie: true
+
+  - id: codex-issue-10233
+    agentId: codex
+    name: "No Headless Quota Inspection API"
+    docIssue: "Issue #10233 (openai/codex)"
+    category: quota_lie
+    description: "OpenAI exposes no non-interactive quota command. Quota state can only be inferred reactively from HTTP 429 errors."
+    referenceUrl: "https://github.com/openai/codex/issues/10233"
+    discoveredDate: "2026-03-02"
+    severity: high
+    impact: "Cannot pre-check usage balance before expensive runs"
+    resolution: "Implement LiteLLM cooldown tracker (allowed_fails + cooldown_time)"
+    triggerRegex: "(?i)(429 Too Many Requests|rate limit)"
+    errorClass: rate_limited
+    cooldownMinutes: 15
+
+  - id: opencode-v1-v2
+    agentId: opencode
+    name: "Auth Command Renamed Between v1 and v2"
+    docIssue: "OpenCode CLI Migration v2.0"
+    category: protocol_mismatch
+    description: "opencode providers was renamed to opencode auth list --format json in v2.0."
+    referenceUrl: "https://opencode.ai/v2/docs/cli/commands/"
+    discoveredDate: "2026-02-14"
+    severity: medium
+    impact: "Subprocess crashes with unknown command on older installs"
+    resolution: "Probe binary version first; dispatch command based on semver"
+    errorClass: corrupted_state
+
+  - id: antigravity-no-auth-cmd
+    agentId: agy
+    name: "Antigravity CLI Interactive Auth Requirement"
+    docIssue: "Google Antigravity Architecture (June 2026)"
+    category: protocol_mismatch
+    description: "Antigravity has no non-interactive auth check command; unauthenticated runs output error requiring interactive login."
+    referenceUrl: "https://antigravity.google/docs/cli/headless/"
+    discoveredDate: "2026-06-18"
+    severity: critical
+    impact: "Silent lockups or unhandled process exits"
+    resolution: "Issue micro headless probe; check for .status == SUCCESS (WAITING is not failure)"
+    triggerExitCode: 1
+    triggerRegex: "(?i)(authentication required|agy auth login)"
+    errorClass: unauthenticated
+    caughtLie: false
+
+  - id: gemini-base-url-exit41
+    agentId: gemini
+    name: "Gemini CLI Custom Base URL Exit 41"
+    docIssue: "Legacy Gemini CLI (Issue #41)"
+    category: false_exit_code
+    description: "Setting GOOGLE_GEMINI_BASE_URL causes exit code 41 FatalAuthenticationError even with valid credentials."
+    referenceUrl: "https://google-gemini.github.io/gemini-cli/docs/troubleshooting.html"
+    discoveredDate: "2026-05-01"
+    severity: high
+    impact: "Unusable behind enterprise proxy setups"
+    resolution: "Normalize exit 41 into unauthenticated / migrate to Antigravity"
+    triggerExitCode: 41
+    triggerRegex: "(?i)FatalAuthenticationError"
+    errorClass: unauthenticated
+    rewrittenExitCode: 429
+    cooldownMinutes: 15
+    caughtLie: true
+
+  - id: copilot-tool-denials
+    agentId: copilot
+    name: "Silent Permission Denials Yield Empty Diffs"
+    docIssue: "GitHub Copilot CLI tool execution"
+    category: protocol_mismatch
+    description: "When tool calls are blocked without explicit --allow-tool flags, Copilot exits 0 with no error message and an empty git diff."
+    referenceUrl: "https://github.com/github/copilot-cli"
+    discoveredDate: "2026-07-20"
+    severity: high
+    impact: "Runner assumes task completed, but code remains unchanged"
+    resolution: "Enforce diff_nonempty deterministic gate"
+    triggerExitCode: 0
+    errorClass: permission_denied
+
+  - id: acp-discovery
+    agentId: aider
+    name: "Single Code-Path Capability Discovery"
+    docIssue: "Agent Client Protocol Standard (ACP)"
+    category: protocol_mismatch
+    description: "Standardized JSON-RPC over stdio. initialize returns agentCapabilities and authMethods for all 42 ACP registry agents."
+    referenceUrl: "https://grokipedia.com/page/Agent_Client_Protocol"
+    discoveredDate: "2026-01-28"
+    severity: medium
+    impact: "High compatibility without vendor-specific CLI hacks"
+    resolution: "Negotiate schema in initialize payload"
+    errorClass: ok

@@ -35,7 +35,7 @@ func findModuleRoot(t *testing.T) string {
 }
 
 func isAllowedImport(imp string) bool {
-	if strings.HasPrefix(imp, corePrefix) {
+	if imp == corePrefix || strings.HasPrefix(imp, corePrefix+"/") {
 		return true
 	}
 	firstSegment := imp
