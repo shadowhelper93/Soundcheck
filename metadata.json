@@ -1,6 +1,0 @@
-{
-  "name": "Soundcheck",
-  "description": "Deterministic multi-CLI preflight prober, capability resolver, and DAG workflow studio for autonomous coding agents.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

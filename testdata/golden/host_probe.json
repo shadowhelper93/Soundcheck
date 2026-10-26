@@ -1,0 +1,64 @@
+{
+  "platform": "darwin",
+  "osName": "macOS (Darwin)",
+  "arch": "arm64",
+  "homeDir": "/Users/sinamashini",
+  "nodeVersion": "v25.2.1",
+  "binaries": {
+    "claude": {
+      "installed": true,
+      "path": "/Users/sinamashini/.local/bin/claude",
+      "version": "2.1.310 (Claude Code)"
+    },
+    "codex": {
+      "installed": true,
+      "path": "/Users/sinamashini/.nvm/versions/node/v25.2.1/bin/codex",
+      "version": "codex-cli 0.163.0"
+    },
+    "opencode": {
+      "installed": true,
+      "path": "/opt/homebrew/bin/opencode",
+      "version": "opencode v2.1.4"
+    },
+    "agy": {
+      "installed": true,
+      "path": "/Users/sinamashini/.local/bin/agy",
+      "version": "1.4.7"
+    },
+    "gemini": {
+      "installed": true,
+      "path": "/Users/sinamashini/.nvm/versions/node/v25.2.1/bin/gemini",
+      "version": "0.65.0"
+    },
+    "copilot": {
+      "installed": true,
+      "path": "/Users/sinamashini/.nvm/versions/node/v25.2.1/bin/copilot",
+      "version": "GitHub Copilot CLI 1.0.98."
+    },
+    "cursor": {
+      "installed": false
+    },
+    "aider": {
+      "installed": true,
+      "path": "/Users/sinamashini/.local/bin/aider",
+      "version": "aider 0.86.2"
+    }
+  },
+  "envPresence": {
+    "ANTHROPIC_API_KEY": false,
+    "OPENAI_API_KEY": true,
+    "CODEX_API_KEY": false,
+    "GEMINI_API_KEY": false,
+    "OPENROUTER_API_KEY": false,
+    "GITHUB_TOKEN": false,
+    "GOOGLE_GEMINI_BASE_URL": false
+  },
+  "configDirChecks": {
+    "claude": true,
+    "codex": true,
+    "opencode": true,
+    "antigravity": true
+  },
+  "gitWorktreeAvailable": true,
+  "timestamp": "2026-10-26T00:00:00.000Z"
+}
