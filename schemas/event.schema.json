@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soundcheck.dev/schemas/event.schema.json",
+  "title": "Event",
+  "description": "Validation schema for Soundcheck streaming NDJSON events (probe_start, probe_done, log, terminal_chunk)",
+  "definitions": {
+    "probe_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3"]
+    },
+    "probe_status": {
+      "type": "string",
+      "enum": ["passed", "failed", "warning", "pending"]
+    },
+    "probe_start_event": {
+      "type": "object",
+      "required": ["adapter", "level"],
+      "properties": {
+        "type": { "enum": ["probe_start"] },
+        "event": { "enum": ["probe_start"] },
+        "adapter": { "type": "string" },
+        "level": { "$ref": "#/definitions/probe_level" },
+        "timestamp": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "description": { "type": "string" }
+      },
+      "anyOf": [
+        { "required": ["type"] },
+        { "required": ["event"] }
+      ]
+    },
+    "probe_done_event": {
+      "type": "object",
+      "required": ["adapter", "level", "status"],
+      "properties": {
+        "type": { "enum": ["probe_done"] },
+        "event": { "enum": ["probe_done"] },
+        "adapter": { "type": "string" },
+        "level": { "$ref": "#/definitions/probe_level" },
+        "status": { "$ref": "#/definitions/probe_status" },
+        "latencyMs": { "type": "number", "minimum": 0 },
+        "errorClass": { "type": "string" },
+        "message": { "type": "string" },
+        "timestamp": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "result": { "type": "object" }
+      },
+      "anyOf": [
+        { "required": ["type"] },
+        { "required": ["event"] }
+      ]
+    },
+    "log_event": {
+      "type": "object",
+      "required": ["message"],
+      "properties": {
+        "type": { "enum": ["log"] },
+        "event": { "enum": ["log"] },
+        "level": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"]
+        },
+        "message": { "type": "string" },
+        "adapter": { "type": "string" },
+        "timestamp": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "data": {}
+      },
+      "anyOf": [
+        { "required": ["type"] },
+        { "required": ["event"] }
+      ]
+    },
+    "terminal_chunk_event": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["terminal_chunk"] },
+        "event": { "enum": ["terminal_chunk"] },
+        "stream": {
+          "type": "string",
+          "enum": ["stdout", "stderr", "pty"]
+        },
+        "chunk": { "type": "string" },
+        "data": { "type": "string" },
+        "adapter": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "timestamp": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["type"] },
+            { "required": ["event"] }
+          ]
+        },
+        {
+          "anyOf": [
+            { "required": ["chunk"] },
+            { "required": ["data"] }
+          ]
+        }
+      ]
+    },
+    "any_event": {
+      "oneOf": [
+        { "$ref": "#/definitions/probe_start_event" },
+        { "$ref": "#/definitions/probe_done_event" },
+        { "$ref": "#/definitions/log_event" },
+        { "$ref": "#/definitions/terminal_chunk_event" }
+      ]
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/any_event" },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/any_event" }
+    }
+  ]
+}

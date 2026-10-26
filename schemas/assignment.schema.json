@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soundcheck.dev/schemas/assignment.schema.json",
+  "title": "Assignment",
+  "description": "Validation schema for Soundcheck role resolution assignments",
+  "definitions": {
+    "step_status": {
+      "type": "string",
+      "enum": [
+        "selected",
+        "skipped_cooldown",
+        "skipped_uninstalled",
+        "skipped_unauth",
+        "skipped_vendor_conflict"
+      ]
+    },
+    "resolver_step": {
+      "type": "object",
+      "required": ["candidate", "agentId", "modelId", "status", "details"],
+      "properties": {
+        "candidate": { "type": "string" },
+        "agentId": { "type": "string" },
+        "modelId": { "type": "string" },
+        "status": { "$ref": "#/definitions/step_status" },
+        "details": { "type": "string" }
+      }
+    },
+    "role_assignment": {
+      "type": "object",
+      "required": [
+        "role",
+        "selectedAgentId",
+        "selectedModel",
+        "fallbackChain",
+        "reasoning",
+        "vendor",
+        "estimatedCostPerM",
+        "healthy"
+      ],
+      "properties": {
+        "role": { "type": "string" },
+        "selectedAgentId": { "type": "string" },
+        "selectedModel": { "type": "string" },
+        "fallbackChain": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "reasoning": { "type": "string" },
+        "vendor": { "type": "string" },
+        "estimatedCostPerM": { "type": "number", "minimum": 0 },
+        "healthy": { "type": "boolean" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/resolver_step" }
+        }
+      }
+    },
+    "assignment_map": {
+      "type": "object",
+      "required": ["primary", "subagent", "auxiliary", "reviewer"],
+      "properties": {
+        "primary": { "$ref": "#/definitions/role_assignment" },
+        "subagent": { "$ref": "#/definitions/role_assignment" },
+        "auxiliary": { "$ref": "#/definitions/role_assignment" },
+        "reviewer": { "$ref": "#/definitions/role_assignment" }
+      },
+      "additionalProperties": { "$ref": "#/definitions/role_assignment" }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/assignment_map" },
+    { "$ref": "#/definitions/role_assignment" },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/role_assignment" }
+    }
+  ]
+}

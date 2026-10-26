@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soundcheck.dev/schemas/probe_result.schema.json",
+  "title": "ProbeResult",
+  "description": "Validation schema for Soundcheck probe results (L0-L3 tiers and host probe)",
+  "definitions": {
+    "error_class": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "not_installed",
+        "unauthenticated",
+        "rate_limited",
+        "quota_exhausted",
+        "model_unavailable",
+        "permission_denied",
+        "timeout",
+        "corrupted_state"
+      ]
+    },
+    "probe_level": {
+      "type": "string",
+      "enum": ["L0", "L1", "L2", "L3"]
+    },
+    "probe_status": {
+      "type": "string",
+      "enum": ["passed", "failed", "warning", "pending"]
+    },
+    "tier_probe_result": {
+      "type": "object",
+      "required": ["level", "status", "errorClass", "message"],
+      "properties": {
+        "level": { "$ref": "#/definitions/probe_level" },
+        "status": { "$ref": "#/definitions/probe_status" },
+        "errorClass": { "$ref": "#/definitions/error_class" },
+        "message": { "type": "string" },
+        "timestamp": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "cachedUntil": {
+          "anyOf": [{ "type": "number" }, { "type": "string" }]
+        },
+        "latencyMs": { "type": "number", "minimum": 0 },
+        "rawDetails": {
+          "type": "object",
+          "properties": {
+            "exitCode": { "type": "integer" },
+            "stdout": { "type": "string" },
+            "stderr": { "type": "string" },
+            "parsedJson": {},
+            "simulated": { "type": "boolean" },
+            "quirkTriggered": { "type": "string" },
+            "error": { "type": "string" }
+          }
+        }
+      }
+    },
+    "host_binary_check": {
+      "type": "object",
+      "required": ["installed"],
+      "properties": {
+        "installed": { "type": "boolean" },
+        "path": { "type": "string" },
+        "version": { "type": "string" },
+        "error": { "type": "string" }
+      }
+    },
+    "host_probe_result": {
+      "type": "object",
+      "required": ["platform", "binaries"],
+      "properties": {
+        "platform": { "type": "string" },
+        "osName": { "type": "string" },
+        "arch": { "type": "string" },
+        "homeDir": { "type": "string" },
+        "nodeVersion": { "type": "string" },
+        "binaries": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/host_binary_check" }
+        },
+        "envPresence": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "configDirChecks": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "gitWorktreeAvailable": { "type": "boolean" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    "adapter_probes_map": {
+      "type": "object",
+      "properties": {
+        "L0": { "$ref": "#/definitions/tier_probe_result" },
+        "L1": { "$ref": "#/definitions/tier_probe_result" },
+        "L2": { "$ref": "#/definitions/tier_probe_result" },
+        "L3": { "$ref": "#/definitions/tier_probe_result" }
+      },
+      "additionalProperties": { "$ref": "#/definitions/tier_probe_result" }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/tier_probe_result" },
+    { "$ref": "#/definitions/host_probe_result" },
+    { "$ref": "#/definitions/adapter_probes_map" },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/tier_probe_result" }
+    }
+  ]
+}

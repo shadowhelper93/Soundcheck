@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soundcheck.dev/schemas/classification.schema.json",
+  "title": "Classification",
+  "description": "Validation schema for Soundcheck classification outputs and quirk test fixtures",
+  "definitions": {
+    "error_class": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "not_installed",
+        "unauthenticated",
+        "rate_limited",
+        "quota_exhausted",
+        "model_unavailable",
+        "permission_denied",
+        "timeout",
+        "corrupted_state"
+      ]
+    },
+    "classification_output": {
+      "type": "object",
+      "properties": {
+        "errorClass": { "$ref": "#/definitions/error_class" },
+        "class": { "$ref": "#/definitions/error_class" },
+        "reason": { "type": "string" },
+        "caughtLie": { "type": "boolean" },
+        "rewritten": { "type": "integer" },
+        "backoffMin": { "type": "integer" },
+        "quirkId": { "type": "string" }
+      },
+      "anyOf": [
+        { "required": ["errorClass", "reason"] },
+        { "required": ["class", "reason"] }
+      ]
+    },
+    "classification_fixture": {
+      "type": "object",
+      "required": ["id", "agentId", "expectedClass", "classification"],
+      "properties": {
+        "id": { "type": "string" },
+        "agentId": { "type": "string" },
+        "name": { "type": "string" },
+        "docIssue": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "simulatedExitCode": { "type": "integer" },
+        "simulatedStdout": { "type": "string" },
+        "simulatedStderr": { "type": "string" },
+        "naiveOutcome": { "type": "string" },
+        "soundcheckOutcome": { "type": "string" },
+        "expectedClass": { "$ref": "#/definitions/error_class" },
+        "explanation": { "type": "string" },
+        "classification": { "$ref": "#/definitions/classification_output" }
+      }
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/definitions/classification_output" },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/classification_output" }
+    },
+    {
+      "type": "array",
+      "items": { "$ref": "#/definitions/classification_fixture" }
+    }
+  ]
+}

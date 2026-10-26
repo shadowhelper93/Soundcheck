@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://soundcheck.dev/schemas/config.schema.json",
+  "title": "SoundcheckConfig",
+  "description": "Configuration schema for Soundcheck (agent-doctor.yaml)",
+  "type": "object",
+  "required": ["version", "roles", "policy"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Configuration specification version"
+    },
+    "roles": {
+      "type": "object",
+      "description": "Role assignments listing candidates in priority order",
+      "required": ["primary", "subagent", "auxiliary", "reviewer"],
+      "properties": {
+        "primary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate agent/model specs for primary lead role"
+        },
+        "subagent": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate agent/model specs for delegated worker role"
+        },
+        "auxiliary": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate agent/model specs for fast utility/classification role"
+        },
+        "reviewer": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Candidate agent/model specs for independent code review role"
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "description": "Orchestrator policy constraints and thresholds",
+      "required": ["require_distinct_vendor"],
+      "additionalProperties": false,
+      "properties": {
+        "require_distinct_vendor": {
+          "type": "array",
+          "description": "Roles that must not share the same vendor (e.g. primary and reviewer)",
+          "items": { "type": "string" },
+          "minItems": 2
+        },
+        "max_cost_usd_per_run": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum USD spend allowed per workflow run"
+        },
+        "probe": {
+          "type": "object",
+          "description": "Preflight probing policy parameters",
+          "additionalProperties": false,
+          "properties": {
+            "deep": {
+              "type": "boolean",
+              "description": "Whether to execute deep model-level probes (L3)"
+            },
+            "ttl_minutes": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Cache validity window in minutes for probe results"
+            }
+          }
+        }
+      }
+    },
+    "adapter_overrides": {
+      "type": "object",
+      "description": "Optional per-adapter CLI command, path, and environment overrides",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "binary": { "type": "string" },
+          "path": { "type": "string" },
+          "env": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "args": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "force_cooldown": { "type": "boolean" },
+          "cooldown_until": {
+            "anyOf": [{ "type": "integer" }, { "type": "string" }]
+          }
+        }
+      }
+    },
+    "overrides": {
+      "type": "object",
+      "description": "Generic overrides map",
+      "additionalProperties": true
+    }
+  }
+}
