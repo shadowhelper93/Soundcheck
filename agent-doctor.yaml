@@ -1,0 +1,28 @@
+# Soundcheck Canonical Configuration (agent-doctor.yaml)
+# Validated against JSON Schema 2026.1
+version: 1
+
+roles:
+  primary:
+    - "claude:claude-3-7-sonnet"
+    - "codex:gpt-5-codex"
+    - "opencode:anthropic/claude-sonnet"
+    - "agy:gemini-2.5-pro"
+  subagent:
+    - "claude:claude-3-7-sonnet"
+    - "opencode:*"
+    - "agy:gemini-2.5-flash"
+  auxiliary:
+    - "claude:claude-3-5-haiku"
+    - "agy:gemini-2.5-flash"
+    - "codex:gpt-5-mini"
+  reviewer:
+    - "codex:*"
+    - "claude:*"
+
+policy:
+  require_distinct_vendor: [primary, reviewer]
+  max_cost_usd_per_run: 5.0
+  probe:
+    deep: false
+    ttl_minutes: 30
