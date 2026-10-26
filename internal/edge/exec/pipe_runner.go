@@ -65,6 +65,7 @@ func (r *ringBuffer) Bytes() []byte {
 }
 
 type eventWriter struct {
+	ctx       context.Context
 	eventType EventType
 	ch        chan<- Event
 }
@@ -75,8 +76,12 @@ func (w *eventWriter) Write(p []byte) (int, error) {
 	}
 	chunk := make([]byte, len(p))
 	copy(chunk, p)
-	w.ch <- Event{Type: w.eventType, Data: chunk}
-	return len(p), nil
+	select {
+	case w.ch <- Event{Type: w.eventType, Data: chunk}:
+		return len(p), nil
+	case <-w.ctx.Done():
+		return 0, w.ctx.Err()
+	}
 }
 
 // PipeRunner executes commands using OS pipes with process group isolation and buffer caps.
@@ -102,8 +107,8 @@ func (p *PipeRunner) buildCmd(ctx context.Context, cmd Cmd, ch chan<- Event) *ex
 	if len(cmd.Env) > 0 {
 		osCmd.Env = append(os.Environ(), cmd.Env...)
 	}
-	osCmd.Stdout = &eventWriter{eventType: EventStdout, ch: ch}
-	osCmd.Stderr = &eventWriter{eventType: EventStderr, ch: ch}
+	osCmd.Stdout = &eventWriter{ctx: ctx, eventType: EventStdout, ch: ch}
+	osCmd.Stderr = &eventWriter{ctx: ctx, eventType: EventStderr, ch: ch}
 	osCmd.WaitDelay = 2 * time.Second
 	prepareCmd(osCmd)
 	osCmd.Cancel = func() error {
@@ -125,12 +130,20 @@ func streamProcess(execCtx context.Context, osCmd *exec.Cmd, cancel context.Canc
 	} else if waitErr != nil {
 		exitCode = -1
 	}
-	ch <- Event{
+	ev := Event{
 		Type:     EventExit,
 		ExitCode: exitCode,
 		Error:    waitErr,
 		TimedOut: timedOut,
 		Killed:   killed,
+	}
+	select {
+	case ch <- ev:
+	default:
+		select {
+		case ch <- ev:
+		case <-execCtx.Done():
+		}
 	}
 }
 

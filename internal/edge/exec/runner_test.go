@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -66,20 +65,6 @@ func buildFakeCLI(t *testing.T) string {
 		t.Fatalf("failed to build fakecli: %v", fakecliErr)
 	}
 	return fakecliPath
-}
-
-func isProcessAlive(pid int) bool {
-	if runtime.GOOS == "windows" {
-		// #nosec G204
-		cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid))
-		out, err := cmd.Output()
-		if err != nil {
-			return false
-		}
-		return strings.Contains(string(out), strconv.Itoa(pid))
-	}
-	err := syscall.Kill(pid, 0)
-	return err == nil
 }
 
 func TestPipeRunner_Success(t *testing.T) {

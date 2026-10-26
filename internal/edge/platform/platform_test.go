@@ -31,9 +31,17 @@ func TestLookPathNotFound(t *testing.T) {
 }
 
 func TestConfigDirDefault(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Setenv("XDG_CONFIG_HOME", "")
+	if runtime.GOOS == "windows" {
+		dir, err := platform.ConfigDir()
+		if err != nil {
+			t.Fatalf("ConfigDir() error: %v", err)
+		}
+		if !strings.HasSuffix(dir, "soundcheck") {
+			t.Fatalf("expected path ending in soundcheck, got %q", dir)
+		}
+		return
 	}
+	t.Setenv("XDG_CONFIG_HOME", "")
 	dir, err := platform.ConfigDir()
 	if err != nil {
 		t.Fatalf("ConfigDir() error: %v", err)
@@ -44,9 +52,17 @@ func TestConfigDirDefault(t *testing.T) {
 }
 
 func TestCacheDirDefault(t *testing.T) {
-	if runtime.GOOS != "windows" {
-		t.Setenv("XDG_CACHE_HOME", "")
+	if runtime.GOOS == "windows" {
+		dir, err := platform.CacheDir()
+		if err != nil {
+			t.Fatalf("CacheDir() error: %v", err)
+		}
+		if !strings.HasSuffix(dir, "soundcheck") {
+			t.Fatalf("expected path ending in soundcheck, got %q", dir)
+		}
+		return
 	}
+	t.Setenv("XDG_CACHE_HOME", "")
 	dir, err := platform.CacheDir()
 	if err != nil {
 		t.Fatalf("CacheDir() error: %v", err)
