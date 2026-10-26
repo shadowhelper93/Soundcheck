@@ -189,3 +189,66 @@ func TestGenericFallbacks(t *testing.T) {
 		})
 	}
 }
+
+func TestAgentFallbacks(t *testing.T) {
+	tests := []struct {
+		name      string
+		raw       domain.RawOutput
+		wantClass domain.ErrorClass
+	}{
+		{
+			name:      "codex doctor failed in checks array",
+			raw:       domain.RawOutput{AgentID: "codex", ExitCode: 0, Stdout: `{"checks":[{"name":"authentication","status":"FAILED"}]}`},
+			wantClass: domain.ErrorClassUnauthenticated,
+		},
+		{
+			name:      "codex clean exit 0",
+			raw:       domain.RawOutput{AgentID: "codex", ExitCode: 0, Stdout: `{"doctor_status":"OK"}`},
+			wantClass: domain.ErrorClassOK,
+		},
+		{
+			name:      "codex error fallback exit 1",
+			raw:       domain.RawOutput{AgentID: "codex", ExitCode: 1, Stderr: "connection reset"},
+			wantClass: domain.ErrorClassUnauthenticated,
+		},
+		{
+			name:      "agy clean exit 0",
+			raw:       domain.RawOutput{AgentID: "agy", ExitCode: 0, Stdout: `{"status":"SUCCESS"}`},
+			wantClass: domain.ErrorClassOK,
+		},
+		{
+			name:      "agy fallback exit 1",
+			raw:       domain.RawOutput{AgentID: "agy", ExitCode: 1, Stderr: "unknown failure"},
+			wantClass: domain.ErrorClassUnauthenticated,
+		},
+		{
+			name:      "gemini clean exit 0",
+			raw:       domain.RawOutput{AgentID: "gemini", ExitCode: 0, Stdout: "ready"},
+			wantClass: domain.ErrorClassOK,
+		},
+		{
+			name:      "gemini generic exit 1",
+			raw:       domain.RawOutput{AgentID: "gemini", ExitCode: 1, Stderr: "unauthorized"},
+			wantClass: domain.ErrorClassUnauthenticated,
+		},
+		{
+			name:      "claude exit 0 with non-json",
+			raw:       domain.RawOutput{AgentID: "claude", ExitCode: 0, Stdout: "Task complete"},
+			wantClass: domain.ErrorClassOK,
+		},
+		{
+			name:      "claude exit 1 generic fallback",
+			raw:       domain.RawOutput{AgentID: "claude", ExitCode: 1, Stderr: "fatal error"},
+			wantClass: domain.ErrorClassUnauthenticated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := classify.Classify(tt.raw, nil)
+			if got.ErrorClass != tt.wantClass {
+				t.Errorf("got %s, want %s", got.ErrorClass, tt.wantClass)
+			}
+		})
+	}
+}

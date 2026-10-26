@@ -249,3 +249,64 @@ type ResolverExplanationStep = ResolverStep
 
 // DetailedResolution aliases Assignment for compatibility.
 type DetailedResolution = Assignment
+
+// RoleResolution aliases Assignment for role resolution results.
+type RoleResolution = Assignment
+
+// HostInfo aliases ManifestHost for host execution environment info.
+type HostInfo = ManifestHost
+
+// Gate defines deterministic verification gates for a workflow stage.
+type Gate struct {
+	Tests        string `json:"tests,omitempty" yaml:"tests,omitempty"`
+	DiffNonEmpty bool   `json:"diff_nonempty,omitempty" yaml:"diff_nonempty,omitempty"`
+	MaxLoops     int    `json:"max_loops,omitempty" yaml:"max_loops,omitempty"`
+}
+
+// WorkflowStage represents a single node in a workflow DAG.
+type WorkflowStage struct {
+	ID             string   `json:"id" yaml:"id"`
+	Name           string   `json:"name" yaml:"name"`
+	Role           Role     `json:"role" yaml:"role"`
+	Needs          []string `json:"needs,omitempty" yaml:"needs,omitempty"`
+	Permissions    string   `json:"permissions" yaml:"permissions"`
+	Worktree       bool     `json:"worktree,omitempty" yaml:"worktree,omitempty"`
+	OutputArtifact string   `json:"outputArtifact,omitempty" yaml:"outputArtifact,omitempty"`
+	Gate           *Gate    `json:"gate,omitempty" yaml:"gate,omitempty"`
+}
+
+// WorkflowPattern defines a declarative multi-stage agent pipeline DAG.
+type WorkflowPattern struct {
+	ID          string          `json:"id" yaml:"id"`
+	Name        string          `json:"name" yaml:"name"`
+	Description string          `json:"description" yaml:"description"`
+	Stages      []WorkflowStage `json:"stages" yaml:"stages"`
+	RawYAML     string          `json:"rawYaml,omitempty" yaml:"rawYaml,omitempty"`
+}
+
+// GateInput contains runtime execution artifacts to be evaluated by a stage gate.
+type GateInput struct {
+	HasDiff      bool   `json:"hasDiff"`
+	DiffSize     int64  `json:"diffSize"`
+	TestExitCode int    `json:"testExitCode"`
+	TestPassed   bool   `json:"testPassed"`
+	TestOutput   string `json:"testOutput,omitempty"`
+	CurrentLoop  int    `json:"currentLoop"`
+}
+
+// GateEvaluation captures the outcome of evaluating stage gate conditions.
+type GateEvaluation struct {
+	Passed     bool     `json:"passed"`
+	DiffPassed bool     `json:"diffPassed"`
+	TestPassed bool     `json:"testPassed"`
+	LoopPassed bool     `json:"loopPassed"`
+	Failures   []string `json:"failures,omitempty"`
+	Message    string   `json:"message"`
+}
+
+// PreflightEvaluation captures the result of verifying agent health before stage execution.
+type PreflightEvaluation struct {
+	Passed   bool     `json:"passed"`
+	Failures []string `json:"failures,omitempty"`
+	Message  string   `json:"message"`
+}
