@@ -167,3 +167,23 @@ func TestTerminalHandlerArgsFallback(t *testing.T) {
 		t.Errorf("expected split single arg fallback, got %+v", runner.lastCmd.Args)
 	}
 }
+
+func TestTerminalHandlerQuotedArgs(t *testing.T) {
+	runner := &mockRunner{sess: newMockSession()}
+	srv := httptest.NewServer(ws.NewTerminalHandler(runner))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + `?args=%22hello%20world%22`
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	_ = conn.Close(websocket.StatusNormalClosure, "")
+
+	if len(runner.lastCmd.Args) != 1 || runner.lastCmd.Args[0] != "hello world" {
+		t.Errorf("expected quoted multi-word arg ['hello world'], got %+v", runner.lastCmd.Args)
+	}
+}

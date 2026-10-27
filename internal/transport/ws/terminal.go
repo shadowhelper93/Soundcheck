@@ -3,6 +3,7 @@ package ws
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"net/http"
 	"net/url"
@@ -95,14 +96,35 @@ func parsePTYRequest(r *http.Request) (exec.Cmd, exec.Winsize) {
 }
 
 func parseArgs(q url.Values) []string {
-	rawArgs := q["args"]
-	if len(rawArgs) > 1 {
-		return rawArgs
+	raw := q["args"]
+	if len(raw) == 0 {
+		return nil
 	}
-	if len(rawArgs) == 1 && rawArgs[0] != "" {
-		return strings.Fields(rawArgs[0])
+	if len(raw) > 1 {
+		return raw
 	}
-	return nil
+	val := strings.TrimSpace(raw[0])
+	if val == "" {
+		return nil
+	}
+	r := csv.NewReader(strings.NewReader(val))
+	r.Comma = ' '
+	r.LazyQuotes = true
+	r.TrimLeadingSpace = true
+	fields, err := r.Read()
+	if err != nil {
+		return strings.Fields(val)
+	}
+	var res []string
+	for _, f := range fields {
+		if f != "" {
+			res = append(res, f)
+		}
+	}
+	if len(res) == 0 {
+		return nil
+	}
+	return res
 }
 
 func defaultShell() string {
