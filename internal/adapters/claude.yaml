@@ -1,0 +1,112 @@
+id: claude
+name: "Claude Code"
+vendor: Anthropic
+binary: claude
+category: platform
+versionSupported: ">=2.1.280"
+installed: false
+authMethodSupported:
+  - "OAuth subscription"
+  - "ANTHROPIC_API_KEY"
+headlessCommand: "claude -p --output-format json"
+permissionModes:
+  - "--permission-mode"
+  - "--allowedTools"
+  - "--bare"
+allowedFails: 2
+consecutiveFails: 0
+quirks:
+  - id: claude-79500
+    agentId: claude
+    name: "Claude Code Rate Limit False Exit 0"
+    docIssue: "Issue #79500 (anthropics/claude-code)"
+    category: false_exit_code
+    description: "API rate limits return subtype:\"success\" with is_error:true and exit code 0! Naive runners think the turn completed successfully."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/79500"
+    discoveredDate: "2026-06-12"
+    severity: critical
+    impact: "Silent workflow pipeline corruption, empty files marked as completed"
+    resolution: "Inspect JSON is_error and error.type, ignore shell exit code"
+    triggerExitCode: 0
+    triggerRegex: "(?i)(rate_limit|quota|5-hour)"
+    errorClass: rate_limited
+    rewrittenExitCode: 429
+    cooldownMinutes: 30
+    caughtLie: true
+  - id: claude-74761
+    agentId: claude
+    name: "Claude Code Mid-Task Exit 0"
+    docIssue: "Issue #74761 (anthropics/claude-code)"
+    category: false_exit_code
+    description: "Headless claude -p exits 0 while loop is mid-task (last assistant message has stop_reason: tool_use)."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/74761"
+    discoveredDate: "2026-05-18"
+    severity: high
+    impact: "Partial file edits left unstaged or uncommitted"
+    resolution: "Check stream-json end_turn event and diff_nonempty gate"
+    triggerExitCode: 0
+    triggerRegex: "\"stop_reason\":\\s*\"tool_use\""
+    errorClass: corrupted_state
+    caughtLie: true
+  - id: claude-95822
+    agentId: claude
+    name: "Claude Auth Polling Exhausts Refresh Tokens"
+    docIssue: "Issue #95822 (anthropics/claude-code)"
+    category: protocol_mismatch
+    description: "Running claude auth status concurrently with claude -p can invalidate OAuth refresh tokens."
+    referenceUrl: "https://github.com/anthropics/claude-code/issues/95822"
+    discoveredDate: "2026-07-04"
+    severity: medium
+    impact: "Requires re-authentication in interactive browser"
+    resolution: "Serialize auth checks; cache L1 probe results for 1 hour"
+    triggerExitCode: 1
+    triggerRegex: "(?i)(invalid_grant|token expired|refresh token)"
+    errorClass: unauthenticated
+    cooldownMinutes: 60
+    caughtLie: false
+models:
+  - id: claude-3-7-sonnet
+    displayName: "Claude 3.7 Sonnet (Hybrid Reasoning)"
+    vendor: Anthropic
+    tier: frontier
+    contextWindow: 200000
+    inputCostPerM: 3.0
+    outputCostPerM: 15.0
+    verified: true
+  - id: claude-3-5-haiku
+    displayName: "Claude 3.5 Haiku (Fast Tier)"
+    vendor: Anthropic
+    tier: fast
+    contextWindow: 200000
+    inputCostPerM: 0.8
+    outputCostPerM: 4.0
+    verified: true
+  - id: claude-opus
+    displayName: "Claude 3 Opus"
+    vendor: Anthropic
+    tier: frontier
+    contextWindow: 200000
+    inputCostPerM: 15.0
+    outputCostPerM: 75.0
+    verified: true
+probeSpecs:
+  L0:
+    level: L0
+    command: "claude --version"
+    timeoutMs: 3000
+    expectedExitCode: 0
+  L1:
+    level: L1
+    command: "claude auth status --output-format json"
+    timeoutMs: 4000
+    expectedExitCode: 0
+  L2:
+    level: L2
+    command: "claude -p \"reply with JSON {\\\"ok\\\":true}\" --output-format json"
+    timeoutMs: 6000
+    expectedExitCode: 0
+  L3:
+    level: L3
+    command: "claude -p \"ping\" --output-format json"
+    timeoutMs: 6000
+    expectedExitCode: 0

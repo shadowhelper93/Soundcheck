@@ -1,0 +1,72 @@
+id: agy
+name: "Antigravity CLI"
+vendor: Google
+binary: agy
+category: platform
+versionSupported: ">=1.0.0"
+installed: false
+authMethodSupported:
+  - "Google Workspace OAuth"
+  - "GEMINI_API_KEY"
+  - "Vertex AI ADC"
+headlessCommand: "agy -p --format json"
+permissionModes:
+  - "--permission-mode"
+  - "auto-approve"
+  - "interactive"
+allowedFails: 3
+consecutiveFails: 0
+quirks:
+  - id: agy-no-auth-cmd
+    agentId: agy
+    name: "Antigravity Missing Auth Flag"
+    docIssue: "Antigravity CLI headless auth flag gap"
+    category: protocol_mismatch
+    description: "Antigravity has no non-interactive auth check command; unauthenticated runs output error requiring interactive login."
+    referenceUrl: "https://antigravity.google/docs/cli/headless/"
+    discoveredDate: "2026-06-18"
+    severity: critical
+    impact: "Silent lockups or unhandled process exits"
+    resolution: "Issue micro headless probe; check for .status == SUCCESS (WAITING is not failure)"
+    triggerExitCode: 1
+    triggerRegex: "(?i)(authentication required|agy auth login)"
+    errorClass: unauthenticated
+    caughtLie: false
+models:
+  - id: gemini-2.5-flash
+    displayName: "Gemini 2.5 Flash"
+    vendor: Google
+    tier: fast
+    contextWindow: 1000000
+    inputCostPerM: 0.15
+    outputCostPerM: 0.6
+    verified: true
+  - id: gemini-2.5-pro
+    displayName: "Gemini 2.5 Pro"
+    vendor: Google
+    tier: frontier
+    contextWindow: 2000000
+    inputCostPerM: 1.25
+    outputCostPerM: 5.0
+    verified: true
+probeSpecs:
+  L0:
+    level: L0
+    command: "agy --version"
+    timeoutMs: 3000
+    expectedExitCode: 0
+  L1:
+    level: L1
+    command: "agy auth status"
+    timeoutMs: 4000
+    expectedExitCode: 0
+  L2:
+    level: L2
+    command: "agy -p \"reply with JSON {\\\"ok\\\":true}\""
+    timeoutMs: 6000
+    expectedExitCode: 0
+  L3:
+    level: L3
+    command: "agy -p \"ping model\""
+    timeoutMs: 6000
+    expectedExitCode: 0

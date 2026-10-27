@@ -1,0 +1,62 @@
+id: copilot
+name: "GitHub Copilot CLI"
+vendor: GitHub / Microsoft
+binary: copilot
+category: platform
+versionSupported: ">=1.1.0"
+installed: false
+authMethodSupported:
+  - "gh auth login"
+  - "GITHUB_TOKEN"
+headlessCommand: "copilot -p --output-format json -s"
+permissionModes:
+  - "--allow-tool"
+  - "--deny-tool"
+allowedFails: 2
+consecutiveFails: 0
+quirks:
+  - id: copilot-tool-denials
+    agentId: copilot
+    name: "Silent Permission Denials Yield Empty Diffs"
+    docIssue: "GitHub Copilot CLI tool execution"
+    category: protocol_mismatch
+    description: "When tool calls are blocked without explicit --allow-tool flags, Copilot exits 0 with no error message and an empty git diff."
+    referenceUrl: "https://github.com/github/copilot-cli"
+    discoveredDate: "2026-07-20"
+    severity: high
+    impact: "Runner assumes task completed, but code remains unchanged"
+    resolution: "Enforce diff_nonempty deterministic gate"
+    triggerExitCode: 0
+    triggerRegex: "(?i)permission denied"
+    errorClass: permission_denied
+    caughtLie: false
+models:
+  - id: gpt-4o-copilot
+    displayName: "Copilot GPT-4o"
+    vendor: OpenAI / GitHub
+    tier: mid
+    contextWindow: 128000
+    inputCostPerM: 2.5
+    outputCostPerM: 10.0
+    verified: true
+probeSpecs:
+  L0:
+    level: L0
+    command: "copilot --version"
+    timeoutMs: 3000
+    expectedExitCode: 0
+  L1:
+    level: L1
+    command: "gh auth status"
+    timeoutMs: 4000
+    expectedExitCode: 0
+  L2:
+    level: L2
+    command: "copilot -p \"reply ok\" --output-format json -s"
+    timeoutMs: 6000
+    expectedExitCode: 0
+  L3:
+    level: L3
+    command: "copilot -p \"ping model\" --output-format json -s"
+    timeoutMs: 6000
+    expectedExitCode: 0

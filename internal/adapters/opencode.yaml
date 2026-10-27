@@ -1,0 +1,70 @@
+id: opencode
+name: "OpenCode"
+vendor: OpenCode Project
+binary: opencode
+category: opensource
+versionSupported: ">=2.0.0"
+installed: false
+authMethodSupported:
+  - "opencode auth login"
+  - "provider keys"
+headlessCommand: "opencode run --format json --auto"
+permissionModes:
+  - "opencode.json permission block"
+  - "--auto"
+allowedFails: 3
+consecutiveFails: 0
+quirks:
+  - id: opencode-v1-v2
+    agentId: opencode
+    name: "Auth Command Renamed Between v1 and v2"
+    docIssue: "opencode providers was renamed to opencode auth list --format json in v2.0."
+    category: command_surface_drift
+    description: "Probe binary version first; dispatch command based on semver."
+    referenceUrl: "https://opencode.ai/v2/docs/cli/commands/"
+    discoveredDate: "2026-02-14"
+    severity: medium
+    impact: "Subprocess crashes with unknown command on older installs"
+    resolution: "Probe binary version first; dispatch command based on semver"
+    triggerExitCode: 1
+    triggerRegex: "(?i)unknown command.*providers"
+    errorClass: corrupted_state
+    caughtLie: false
+models:
+  - id: anthropic/claude-sonnet
+    displayName: "OpenCode Sonnet Gateway"
+    vendor: Anthropic
+    tier: frontier
+    contextWindow: 200000
+    inputCostPerM: 3.0
+    outputCostPerM: 15.0
+    verified: true
+  - id: openai/gpt-5.x-mini
+    displayName: "OpenCode GPT-5 Mini"
+    vendor: OpenAI
+    tier: fast
+    contextWindow: 128000
+    inputCostPerM: 0.3
+    outputCostPerM: 1.2
+    verified: true
+probeSpecs:
+  L0:
+    level: L0
+    command: "opencode --version"
+    timeoutMs: 3000
+    expectedExitCode: 0
+  L1:
+    level: L1
+    command: "opencode auth list --format json"
+    timeoutMs: 4000
+    expectedExitCode: 0
+  L2:
+    level: L2
+    command: "opencode run \"reply ok\" --format json"
+    timeoutMs: 6000
+    expectedExitCode: 0
+  L3:
+    level: L3
+    command: "opencode run \"ping model\" --format json"
+    timeoutMs: 6000
+    expectedExitCode: 0
