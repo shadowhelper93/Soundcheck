@@ -63,11 +63,13 @@ func (s *mockSession) Events() <-chan exec.Event { return s.eventsCh }
 func (s *mockSession) History() []byte { return nil }
 
 type mockRunner struct {
-	sess *mockSession
-	err  error
+	sess    *mockSession
+	err     error
+	lastCmd exec.Cmd
 }
 
-func (r *mockRunner) Start(_ context.Context, _ exec.Cmd, _ exec.Winsize) (exec.PTYSession, error) {
+func (r *mockRunner) Start(_ context.Context, cmd exec.Cmd, _ exec.Winsize) (exec.PTYSession, error) {
+	r.lastCmd = cmd
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -123,5 +125,45 @@ func TestTerminalHandlerBidirectional(t *testing.T) {
 	}
 	if len(sess.resized) != 1 || sess.resized[0].Cols != 120 || sess.resized[0].Rows != 40 {
 		t.Errorf("expected resize to 120x40, got %+v", sess.resized)
+	}
+}
+
+func TestTerminalHandlerArgsParsing(t *testing.T) {
+	runner := &mockRunner{sess: newMockSession()}
+	srv := httptest.NewServer(ws.NewTerminalHandler(runner))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "?args=hello%20world&args=again"
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	_ = conn.Close(websocket.StatusNormalClosure, "")
+
+	if len(runner.lastCmd.Args) != 2 || runner.lastCmd.Args[0] != "hello world" || runner.lastCmd.Args[1] != "again" {
+		t.Errorf("expected multi-word repeated args, got %+v", runner.lastCmd.Args)
+	}
+}
+
+func TestTerminalHandlerArgsFallback(t *testing.T) {
+	runner := &mockRunner{sess: newMockSession()}
+	srv := httptest.NewServer(ws.NewTerminalHandler(runner))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http") + "?args=-l%20-a"
+	conn, _, err := websocket.Dial(ctx, wsURL, nil)
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	_ = conn.Close(websocket.StatusNormalClosure, "")
+
+	if len(runner.lastCmd.Args) != 2 || runner.lastCmd.Args[0] != "-l" || runner.lastCmd.Args[1] != "-a" {
+		t.Errorf("expected split single arg fallback, got %+v", runner.lastCmd.Args)
 	}
 }

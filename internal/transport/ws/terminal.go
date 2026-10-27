@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"os"
 	"runtime"
 	"strconv"
@@ -90,11 +91,18 @@ func parsePTYRequest(r *http.Request) (exec.Cmd, exec.Winsize) {
 	if rows == 0 {
 		rows = 24
 	}
-	var args []string
-	if a := q.Get("args"); a != "" {
-		args = strings.Fields(a)
+	return exec.Cmd{Binary: bin, Args: parseArgs(q)}, exec.Winsize{Cols: uint16(cols), Rows: uint16(rows)}
+}
+
+func parseArgs(q url.Values) []string {
+	rawArgs := q["args"]
+	if len(rawArgs) > 1 {
+		return rawArgs
 	}
-	return exec.Cmd{Binary: bin, Args: args}, exec.Winsize{Cols: uint16(cols), Rows: uint16(rows)}
+	if len(rawArgs) == 1 && rawArgs[0] != "" {
+		return strings.Fields(rawArgs[0])
+	}
+	return nil
 }
 
 func defaultShell() string {

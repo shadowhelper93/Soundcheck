@@ -16,6 +16,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /api/v1/doctor", s.handleDoctor)
 	s.mux.HandleFunc("GET /api/v1/probe", s.handleProbeList)
 	s.mux.HandleFunc("POST /api/v1/probe/{id}", s.handleProbeID)
+	s.mux.HandleFunc("GET /api/v1/resolve", s.handleResolve)
 	s.mux.HandleFunc("POST /api/v1/resolve", s.handleResolve)
 	s.mux.HandleFunc("GET /api/v1/manifest", s.handleManifest)
 	s.mux.HandleFunc("GET /api/v1/adapters", s.handleAdapters)

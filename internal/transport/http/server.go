@@ -3,8 +3,10 @@ package http
 
 import (
 	"context"
+	"crypto/subtle"
 	"embed"
 	"errors"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -100,7 +102,7 @@ func (s *Server) isOriginAllowed(origin string) bool {
 		return false
 	}
 	host := u.Hostname()
-	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+	if isLoopback(host) {
 		return true
 	}
 	for _, allowed := range s.allowedOrigins {
@@ -111,17 +113,32 @@ func (s *Server) isOriginAllowed(origin string) bool {
 	return false
 }
 
+func isLoopback(host string) bool {
+	if host == "localhost" {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
+}
+
 func (s *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 	if s.authToken == "" || r.URL.Path == "/api/health" || r.Method == http.MethodOptions {
 		return true
 	}
-	auth := r.Header.Get("Authorization")
-	parts := strings.SplitN(auth, " ", 2)
-	if len(parts) == 2 && parts[0] == "Bearer" && parts[1] == s.authToken {
+	token := extractToken(r)
+	if token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.authToken)) == 1 {
 		return true
 	}
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	return false
+}
+
+func extractToken(r *http.Request) string {
+	auth := r.Header.Get("Authorization")
+	if strings.HasPrefix(auth, "Bearer ") {
+		return strings.TrimPrefix(auth, "Bearer ")
+	}
+	return r.URL.Query().Get("token")
 }
 
 // Start launches the HTTP server with graceful shutdown when ctx is canceled.

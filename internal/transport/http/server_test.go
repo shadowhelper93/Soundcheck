@@ -102,7 +102,15 @@ func TestServerResolveAndManifest(t *testing.T) {
 	recResolve := httptest.NewRecorder()
 	srv.ServeHTTP(recResolve, reqResolve)
 	if recResolve.Code != http.StatusOK {
-		t.Fatalf("expected status 200 from resolve, got %d", recResolve.Code)
+		t.Fatalf("expected status 200 from resolve POST, got %d", recResolve.Code)
+	}
+
+	// GET /api/v1/resolve?role=primary
+	reqResolveGet := httptest.NewRequest("GET", "/api/v1/resolve?role=primary", nil)
+	recResolveGet := httptest.NewRecorder()
+	srv.ServeHTTP(recResolveGet, reqResolveGet)
+	if recResolveGet.Code != http.StatusOK {
+		t.Fatalf("expected status 200 from resolve GET, got %d", recResolveGet.Code)
 	}
 
 	// GET /api/v1/manifest
@@ -186,6 +194,24 @@ func TestServerOriginSecurity(t *testing.T) {
 	if recEvil.Code != http.StatusForbidden {
 		t.Errorf("expected status 403 for evil.com origin, got %d", recEvil.Code)
 	}
+
+	// Attacker disguised 127 origin (CSWSH) - rejected
+	reqEvil127 := httptest.NewRequest("GET", "/api/health", nil)
+	reqEvil127.Header.Set("Origin", "http://127.evil.com")
+	recEvil127 := httptest.NewRecorder()
+	srv.ServeHTTP(recEvil127, reqEvil127)
+	if recEvil127.Code != http.StatusForbidden {
+		t.Errorf("expected status 403 for 127.evil.com origin, got %d", recEvil127.Code)
+	}
+
+	// IPv6 loopback origin - allowed
+	reqIPv6 := httptest.NewRequest("GET", "/api/health", nil)
+	reqIPv6.Header.Set("Origin", "http://[::1]:8080")
+	recIPv6 := httptest.NewRecorder()
+	srv.ServeHTTP(recIPv6, reqIPv6)
+	if recIPv6.Code != http.StatusOK {
+		t.Errorf("expected status 200 for [::1] origin, got %d", recIPv6.Code)
+	}
 }
 
 func TestServerBearerAuth(t *testing.T) {
@@ -215,6 +241,22 @@ func TestServerBearerAuth(t *testing.T) {
 	srv.ServeHTTP(recValidAuth, reqValidAuth)
 	if recValidAuth.Code != http.StatusOK {
 		t.Errorf("expected status 200 with valid token, got %d", recValidAuth.Code)
+	}
+
+	// Browser WebSocket query token -> 200
+	reqQueryAuth := httptest.NewRequest("GET", "/api/v1/manifest?token=secret-token-123", nil)
+	recQueryAuth := httptest.NewRecorder()
+	srv.ServeHTTP(recQueryAuth, reqQueryAuth)
+	if recQueryAuth.Code != http.StatusOK {
+		t.Errorf("expected status 200 with valid query auth token, got %d", recQueryAuth.Code)
+	}
+
+	// Wrong query token -> 401
+	reqWrongQuery := httptest.NewRequest("GET", "/api/v1/manifest?token=bad-token", nil)
+	recWrongQuery := httptest.NewRecorder()
+	srv.ServeHTTP(recWrongQuery, reqWrongQuery)
+	if recWrongQuery.Code != http.StatusUnauthorized {
+		t.Errorf("expected status 401 with wrong query auth token, got %d", recWrongQuery.Code)
 	}
 }
 
