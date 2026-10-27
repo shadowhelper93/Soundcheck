@@ -38,11 +38,17 @@ export const ResolverView: React.FC<ResolverViewProps> = ({
 
   const queryLiveResolve = async (roleToQuery: string) => {
     setIsQueryingApi(true);
+    setLiveResolutions(null);
     try {
       const res = await fetch(`/api/v1/resolve?role=${roleToQuery}`);
       if (res.ok) {
         const data = await res.json();
-        setLiveResolutions(Array.isArray(data) ? data : [data]);
+        const list = Array.isArray(data)
+          ? data
+          : (data && typeof data === 'object' && ('role' in data || 'selectedAgentId' in data))
+            ? [data]
+            : Object.values(data || {});
+        setLiveResolutions(list);
       }
     } catch {
       // ignore
@@ -327,9 +333,9 @@ export const ResolverView: React.FC<ResolverViewProps> = ({
                 {liveResolutions.map((res: any, idx: number) => (
                   <div key={idx} className="text-xs font-mono flex items-center justify-between text-[#E6EAF2]">
                     <span>
-                      {res.role || selectedRoleForDetail}: <span style={{ color: accentColor }}>{res.adapterId || res.adapter}</span> ({res.model || 'default'})
+                      {res.role || selectedRoleForDetail}: <span style={{ color: accentColor }}>{res.selectedAgentId || res.adapterId || res.adapter}</span> ({res.selectedModel || res.model || 'default'})
                     </span>
-                    <span className="text-[11px] text-[#8B95A7]">{res.reason || res.vendor}</span>
+                    <span className="text-[11px] text-[#8B95A7]">{res.reasoning || res.reason || res.vendor}</span>
                   </div>
                 ))}
               </div>

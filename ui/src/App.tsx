@@ -313,7 +313,7 @@ export default function App() {
           <div className="flex items-center gap-4 text-[11px] text-[#8B95A7]">
             <span>Presence → Auth → Smoke → Model</span>
             <span>·</span>
-            <span>Real Node.js &amp; Subprocess Engine</span>
+            <span>Real Go Subprocess &amp; PTY Engine</span>
           </div>
         </div>
       </footer>
