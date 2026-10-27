@@ -184,6 +184,11 @@ func (s *ptySession) Close() error {
 	s.closeOnce.Do(func() {
 		s.mu.Lock()
 		s.closed = true
+		if s.ptmx != nil {
+			if cerr := s.ptmx.Close(); cerr != nil && !errors.Is(cerr, os.ErrClosed) {
+				err = cerr
+			}
+		}
 		s.mu.Unlock()
 
 		if s.cancel != nil {
@@ -191,9 +196,6 @@ func (s *ptySession) Close() error {
 		}
 		if s.cmd != nil && s.cmd.Process != nil {
 			_ = killProcessGroup(s.cmd)
-		}
-		if s.ptmx != nil {
-			err = s.ptmx.Close()
 		}
 	})
 	return err
@@ -225,14 +227,17 @@ func (s *ptySession) readLoop(readDone chan<- struct{}) {
 
 func (s *ptySession) waitLoop(readDone <-chan struct{}) {
 	waitErr := s.cmd.Wait()
+
+	s.mu.Lock()
+	s.closed = true
+	if s.ptmx != nil {
+		_ = s.ptmx.Close()
+	}
+	s.mu.Unlock()
+
 	<-readDone
 
 	code := procExitCode(waitErr)
-	s.mu.Lock()
-	s.exitCode = code
-	s.waitErr = waitErr
-	s.mu.Unlock()
-
 	s.sendExitEvent(Event{
 		Type:     EventExit,
 		ExitCode: code,
@@ -240,9 +245,14 @@ func (s *ptySession) waitLoop(readDone <-chan struct{}) {
 		TimedOut: errors.Is(s.ctx.Err(), context.DeadlineExceeded),
 		Killed:   s.ctx.Err() != nil,
 	})
+
+	s.mu.Lock()
+	s.exitCode = code
+	s.waitErr = waitErr
 	close(s.events)
+	s.mu.Unlock()
+
 	close(s.done)
-	_ = s.ptmx.Close()
 }
 
 func (s *ptySession) sendEvent(ev Event) {

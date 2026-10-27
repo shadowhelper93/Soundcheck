@@ -3,6 +3,7 @@ package exec_test
 import (
 	"bytes"
 	"context"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -215,5 +216,78 @@ func TestPTYRunner_Validation(t *testing.T) {
 	_, err := runner.Start(context.Background(), edgeexec.Cmd{}, edgeexec.Winsize{})
 	if err == nil {
 		t.Fatalf("expected error for empty binary")
+	}
+}
+
+func TestPTYRunner_ConcurrentResizeOnExit(t *testing.T) {
+	defer goleak.VerifyNone(t)
+
+	bin := buildFakeCLI(t)
+	runner := edgeexec.NewPTYRunner()
+
+	cmd := edgeexec.Cmd{
+		Binary: bin,
+		Args:   []string{"--stdout=hello"},
+	}
+	session, err := runner.Start(context.Background(), cmd, edgeexec.Winsize{Cols: 80, Rows: 24})
+	if err != nil {
+		t.Fatalf("failed to start pty: %v", err)
+	}
+	defer func() { _ = session.Close() }()
+
+	done := make(chan struct{})
+	for i := uint16(0); i < 8; i++ {
+		go func(id uint16) {
+			for {
+				select {
+				case <-done:
+					return
+				default:
+					_ = session.Resize(80+id, 24+id)
+				}
+			}
+		}(i)
+	}
+
+	for range session.Events() {
+	}
+
+	exitCode, err := session.Wait()
+	close(done)
+	if err != nil {
+		t.Fatalf("unexpected wait error: %v", err)
+	}
+	if exitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d", exitCode)
+	}
+}
+
+func TestPTYRunner_BackgroundChildDoesNotBlockWait(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping background process test on windows")
+	}
+	defer goleak.VerifyNone(t)
+
+	runner := edgeexec.NewPTYRunner()
+	cmd := edgeexec.Cmd{
+		Binary: "/bin/sh",
+		Args:   []string{"-c", "(sleep 5 &); exit 0"},
+	}
+	session, err := runner.Start(context.Background(), cmd, edgeexec.Winsize{Cols: 80, Rows: 24})
+	if err != nil {
+		t.Fatalf("failed to start pty: %v", err)
+	}
+	defer func() { _ = session.Close() }()
+
+	waitDone := make(chan struct{})
+	go func() {
+		_, _ = session.Wait()
+		close(waitDone)
+	}()
+
+	select {
+	case <-waitDone:
+	case <-time.After(2 * time.Second):
+		t.Fatalf("session.Wait() hung on background child process")
 	}
 }

@@ -128,6 +128,7 @@ func watchResize(done <-chan struct{}, sigCh <-chan os.Signal, fd int, session e
 	}
 }
 
+// ponytail: forwardStdin blocks on in.Read until keystroke or EOF; unblocks on process termination. Upgrade to cancelable reader when detached sessions supported.
 func forwardStdin(done <-chan struct{}, in io.Reader, session exec.PTYSession) {
 	buf := make([]byte, 1024)
 	for {
