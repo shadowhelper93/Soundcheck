@@ -4,6 +4,7 @@ bin/
 !ui/dist/
 build/
 coverage/
+*.vsix
 
 # Dependencies
 node_modules/

@@ -1,0 +1,118 @@
+{
+  "name": "soundcheck",
+  "displayName": "Soundcheck",
+  "description": "Preflight health check, role resolution, quirk immunity, and auto-failover for AI coding agents.",
+  "version": "1.0.0",
+  "publisher": "soundcheck",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "soundcheck.doctor",
+        "title": "Run Doctor Preflight Check",
+        "category": "Soundcheck"
+      },
+      {
+        "command": "soundcheck.resolve",
+        "title": "Resolve Agent Roles",
+        "category": "Soundcheck"
+      },
+      {
+        "command": "soundcheck.exec",
+        "title": "Execute Prompt with Auto-Failover",
+        "category": "Soundcheck"
+      },
+      {
+        "command": "soundcheck.openDashboard",
+        "title": "Open Visual Dashboard",
+        "category": "Soundcheck"
+      },
+      {
+        "command": "soundcheck.openTerminal",
+        "title": "Open Interactive Adapter Terminal",
+        "category": "Soundcheck"
+      },
+      {
+        "command": "soundcheck.refresh",
+        "title": "Refresh Health Status",
+        "icon": "$(refresh)",
+        "category": "Soundcheck"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "soundcheck-explorer",
+          "title": "Soundcheck",
+          "icon": "$(shield)"
+        }
+      ]
+    },
+    "views": {
+      "soundcheck-explorer": [
+        {
+          "id": "soundcheck.adaptersView",
+          "name": "CLI Adapters"
+        },
+        {
+          "id": "soundcheck.rolesView",
+          "name": "Resolved Roles"
+        },
+        {
+          "id": "soundcheck.actionsView",
+          "name": "Quick Actions"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "soundcheck.refresh",
+          "when": "view == soundcheck.adaptersView",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Soundcheck",
+      "properties": {
+        "soundcheck.binaryPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to the soundcheck CLI binary. If empty, automatically resolves from workspace bin/soundcheck or system PATH."
+        },
+        "soundcheck.autoDoctorOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically run background health preflight check when VS Code opens."
+        },
+        "soundcheck.serverPort": {
+          "type": "number",
+          "default": 8080,
+          "description": "Local HTTP port used for the Soundcheck web dashboard."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.0.0"
+  }
+}
