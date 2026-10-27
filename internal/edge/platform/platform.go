@@ -15,3 +15,8 @@ func ConfigDir() (string, error) {
 func CacheDir() (string, error) {
 	return cacheDir()
 }
+
+// EnrichEnv ensures that PATH in the environment slice includes existing candidate CLI directories.
+func EnrichEnv(env []string) []string {
+	return enrichEnv(env)
+}

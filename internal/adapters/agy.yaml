@@ -9,7 +9,7 @@ authMethodSupported:
   - "Google Workspace OAuth"
   - "GEMINI_API_KEY"
   - "Vertex AI ADC"
-headlessCommand: "agy -p --format json"
+headlessCommand: "agy -p"
 permissionModes:
   - "--permission-mode"
   - "auto-approve"
@@ -57,8 +57,8 @@ probeSpecs:
     expectedExitCode: 0
   L1:
     level: L1
-    command: "agy auth status"
-    timeoutMs: 4000
+    command: "agy models"
+    timeoutMs: 12000
     expectedExitCode: 0
   L2:
     level: L2

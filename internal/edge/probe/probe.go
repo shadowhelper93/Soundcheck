@@ -225,7 +225,12 @@ func evaluateTurnResult(
 		}
 	}
 
-	if cl.ErrorClass != domain.ErrorClassOK || res.ExitCode != 0 {
+	effectiveCode := res.ExitCode
+	if cl.CaughtLie && cl.Rewritten == 0 && cl.ErrorClass == domain.ErrorClassOK {
+		effectiveCode = 0
+	}
+
+	if cl.ErrorClass != domain.ErrorClassOK || effectiveCode != 0 {
 		msg := cl.Reason
 		if msg == "" {
 			msg = fmt.Sprintf("Command failed with exit code %d", res.ExitCode)
@@ -417,13 +422,17 @@ func tierIndex(tier domain.Tier) int {
 func buildCmd(bin, cmdStr string, fallbackArgs []string, timeout time.Duration) exec.Cmd {
 	tokens := splitCommand(cmdStr)
 	args := fallbackArgs
-	if len(tokens) > 1 {
+	targetBin := bin
+	if len(tokens) > 0 {
+		if lp, err := platform.LookPath(tokens[0]); err == nil {
+			targetBin = lp
+		} else {
+			targetBin = tokens[0]
+		}
 		args = tokens[1:]
-	} else if len(tokens) == 1 && cmdStr != "" {
-		args = []string{}
 	}
 	return exec.Cmd{
-		Binary:  bin,
+		Binary:  targetBin,
 		Args:    args,
 		Timeout: timeout,
 	}

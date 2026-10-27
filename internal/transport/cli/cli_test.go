@@ -77,12 +77,13 @@ func testDefinitions(bin string) []adapters.Definition {
 		orig, _ := adapters.Get(id)
 		defs[i] = adapters.Definition{
 			Adapter: domain.Adapter{
-				ID:       id,
-				Name:     orig.Name,
-				Vendor:   orig.Vendor,
-				Binary:   bin,
-				Category: orig.Category,
-				Models:   orig.Models,
+				ID:              id,
+				Name:            orig.Name,
+				Vendor:          orig.Vendor,
+				Binary:          bin,
+				Category:        orig.Category,
+				Models:          orig.Models,
+				HeadlessCommand: bin,
 			},
 			ProbeSpecs: map[domain.Tier]domain.Probe{
 				domain.TierL0: {Level: domain.TierL0, Command: bin + " --version"},
@@ -517,6 +518,18 @@ func TestCLIServeAndMCP(t *testing.T) {
 		}
 		if !strings.Contains(stdout.String(), `"id":1`) {
 			t.Errorf("expected mcp ping response, got: %s", stdout.String())
+		}
+	})
+
+	t.Run("exec command with fakecli", func(t *testing.T) {
+		var stdout bytes.Buffer
+		code := cli.ExecuteCustom(context.Background(), cli.ExecutionConfig{
+			Args: []string{"exec", "hello world"},
+			Out:  &stdout,
+			App:  a,
+		})
+		if code != cli.ExitOK {
+			t.Fatalf("expected ExitOK (0), got %d, out=%s", code, stdout.String())
 		}
 	})
 }

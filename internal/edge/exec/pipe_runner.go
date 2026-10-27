@@ -5,7 +5,10 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
+
+	"github.com/soundcheck/soundcheck/internal/edge/platform"
 )
 
 // DefaultMaxOutputBytes is the default buffer cap per stream (1MB).
@@ -46,13 +49,24 @@ func NewPipeRunner(maxBytes ...int) *PipeRunner {
 }
 
 func (p *PipeRunner) buildCmd(ctx context.Context, cmd Cmd, ch chan<- Event) *exec.Cmd {
+	bin := cmd.Binary
+	if resolved, err := platform.LookPath(cmd.Binary); err == nil {
+		bin = resolved
+	}
 	// #nosec G204
-	osCmd := exec.CommandContext(ctx, cmd.Binary, cmd.Args...)
+	osCmd := exec.CommandContext(ctx, bin, cmd.Args...)
 	if cmd.Dir != "" {
 		osCmd.Dir = cmd.Dir
 	}
+	env := os.Environ()
 	if len(cmd.Env) > 0 {
-		osCmd.Env = append(os.Environ(), cmd.Env...)
+		env = append(env, cmd.Env...)
+	}
+	osCmd.Env = platform.EnrichEnv(env)
+	if cmd.Stdin != nil {
+		osCmd.Stdin = cmd.Stdin
+	} else {
+		osCmd.Stdin = strings.NewReader("")
 	}
 	osCmd.Stdout = &eventWriter{ctx: ctx, eventType: EventStdout, ch: ch}
 	osCmd.Stderr = &eventWriter{ctx: ctx, eventType: EventStderr, ch: ch}

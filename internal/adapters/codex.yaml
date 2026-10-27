@@ -74,8 +74,8 @@ probeSpecs:
     expectedExitCode: 0
   L1:
     level: L1
-    command: "codex doctor --json"
-    timeoutMs: 4000
+    command: "codex features list"
+    timeoutMs: 5000
     expectedExitCode: 0
   L2:
     level: L2

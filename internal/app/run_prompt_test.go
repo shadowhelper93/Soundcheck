@@ -1,12 +1,28 @@
-package app
+package app_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/soundcheck/soundcheck/internal/app"
+	edgeExec "github.com/soundcheck/soundcheck/internal/edge/exec"
+	"github.com/soundcheck/soundcheck/internal/edge/store"
 )
 
 func TestAppRunPrompt_FallbackToWorkingAgent(t *testing.T) {
-	a, err := New()
+	bin := getFakeCLI(t)
+	defs := testDefinitions(bin)
+	for i := range defs {
+		defs[i].HeadlessCommand = bin
+	}
+	runner := edgeExec.NewPipeRunner()
+	cache := store.NewTTLCache(nil)
+
+	a, err := app.New(
+		app.WithRunner(runner),
+		app.WithCache(cache),
+		app.WithDefinitions(defs),
+	)
 	if err != nil {
 		t.Fatalf("failed to init app: %v", err)
 	}
@@ -21,5 +37,8 @@ func TestAppRunPrompt_FallbackToWorkingAgent(t *testing.T) {
 	}
 	if len(res.Attempts) == 0 {
 		t.Fatal("expected at least one attempt recorded")
+	}
+	if !res.Success {
+		t.Fatal("expected prompt run to succeed with fakecli")
 	}
 }

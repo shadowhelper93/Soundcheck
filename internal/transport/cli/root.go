@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -186,9 +187,29 @@ func addCommands(cmd *cobra.Command, opts *RootOptions, a *app.App) {
 	cmd.AddCommand(newManifestCmd(opts, a))
 	cmd.AddCommand(newFixCmd(opts, a))
 	cmd.AddCommand(newRunCmd(opts, a))
+	cmd.AddCommand(newExecCmd(opts, a))
 	cmd.AddCommand(newServeCmd(opts, a))
 	cmd.AddCommand(newMCPCmd(opts, a))
 	cmd.AddCommand(newVersionCmd(opts))
+}
+
+func resolveConfigFile(explicit string) string {
+	if explicit != "" {
+		return explicit
+	}
+	candidates := []string{"soundcheck.yaml", "soundcheck.yml", "agent-doctor.yaml", "agent-doctor.yml"}
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+			return c
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		userCfg := filepath.Join(home, ".config", "soundcheck", "config.yaml")
+		if fi, err := os.Stat(userCfg); err == nil && !fi.IsDir() {
+			return userCfg
+		}
+	}
+	return ""
 }
 
 func resolveApp(opts *RootOptions, injected *app.App) (*app.App, error) {
@@ -196,8 +217,9 @@ func resolveApp(opts *RootOptions, injected *app.App) (*app.App, error) {
 		return injected, nil
 	}
 	var appOpts []app.Option
-	if opts.Config != "" {
-		cfg, err := config.Load(opts.Config)
+	cfgPath := resolveConfigFile(opts.Config)
+	if cfgPath != "" {
+		cfg, err := config.Load(cfgPath)
 		if err != nil {
 			return nil, &ExitError{Code: ExitConfigInvalid, Err: fmt.Errorf("config error: %w", err)}
 		}

@@ -3,9 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/soundcheck/soundcheck/internal/core/classify"
 	"github.com/soundcheck/soundcheck/internal/core/domain"
+	"github.com/soundcheck/soundcheck/internal/edge/exec"
+	"github.com/soundcheck/soundcheck/internal/edge/platform"
 )
 
 // RunPromptAttempt records an individual attempt with an agent.
@@ -26,17 +30,32 @@ type RunPromptResult struct {
 	DurationMs       int64              `json:"durationMs"`
 }
 
-func (a *App) getPromptCandidates(ctx context.Context) []string {
-	resolutions, err := a.Resolve(ctx, "")
-	if err != nil {
-		return []string{"opencode", "gemini", "claude"}
+func (a *App) getPromptCandidates(ctx context.Context, target string) []string {
+	if target != "" {
+		if _, ok := a.defs[target]; ok {
+			return []string{target}
+		}
 	}
-	candidates := make([]string, 0, 4)
-	if p, ok := resolutions[domain.RolePrimary]; ok && p.SelectedAgentID != "none" && p.SelectedAgentID != "" {
-		candidates = append(candidates, p.SelectedAgentID)
+	cfg := a.Config()
+	candidates := make([]string, 0, 8)
+	seen := make(map[string]bool)
+	addCandidate := func(id string) {
+		if id != "" && id != "none" && !seen[id] {
+			seen[id] = true
+			candidates = append(candidates, id)
+		}
 	}
-	if s, ok := resolutions[domain.RoleSubagent]; ok && s.SelectedAgentID != "none" && s.SelectedAgentID != "" {
-		candidates = append(candidates, s.SelectedAgentID)
+	resolutions, _ := a.Resolve(ctx, target)
+	for _, r := range []domain.Role{domain.RolePrimary, domain.RoleReviewer} {
+		if res, ok := resolutions[r]; ok {
+			addCandidate(res.SelectedAgentID)
+		}
+	}
+	for _, spec := range cfg.Roles[domain.RolePrimary] {
+		addCandidate(strings.Split(spec, ":")[0])
+	}
+	for _, spec := range cfg.Roles[domain.RoleReviewer] {
+		addCandidate(strings.Split(spec, ":")[0])
 	}
 	if len(candidates) == 0 {
 		candidates = append(candidates, "opencode", "gemini", "claude")
@@ -45,10 +64,14 @@ func (a *App) getPromptCandidates(ctx context.Context) []string {
 }
 
 // RunPrompt executes a prompt with automatic failover down the resolved healthy agents.
-func (a *App) RunPrompt(ctx context.Context, prompt string) (*RunPromptResult, error) {
+func (a *App) RunPrompt(ctx context.Context, prompt string, target ...string) (*RunPromptResult, error) {
 	start := time.Now()
-	candidates := a.getPromptCandidates(ctx)
-	attempts, agent, out, ok := a.tryCandidates(ctx, candidates)
+	tgt := ""
+	if len(target) > 0 {
+		tgt = target[0]
+	}
+	candidates := a.getPromptCandidates(ctx, tgt)
+	attempts, agent, out, ok := a.tryCandidates(ctx, candidates, prompt)
 
 	return &RunPromptResult{
 		Prompt:           prompt,
@@ -61,13 +84,17 @@ func (a *App) RunPrompt(ctx context.Context, prompt string) (*RunPromptResult, e
 	}, nil
 }
 
-func (a *App) tryCandidates(ctx context.Context, candidates []string) ([]RunPromptAttempt, string, string, bool) {
+func (a *App) tryCandidates(
+	ctx context.Context,
+	candidates []string,
+	prompt string,
+) ([]RunPromptAttempt, string, string, bool) {
 	var attempts []RunPromptAttempt
 	for _, agentID := range candidates {
-		att, ok := a.tryAgent(ctx, agentID)
+		att, out, ok := a.tryAgent(ctx, agentID, prompt)
 		attempts = append(attempts, att)
 		if ok {
-			return attempts, agentID, fmt.Sprintf("[%s]: Task processed successfully.", agentID), true
+			return attempts, agentID, out, true
 		}
 	}
 	out := "All candidate agents failed or require authentication."
@@ -78,20 +105,64 @@ func (a *App) tryCandidates(ctx context.Context, candidates []string) ([]RunProm
 	return attempts, agent, out, false
 }
 
-func (a *App) tryAgent(ctx context.Context, agentID string) (RunPromptAttempt, bool) {
-	ad, err := a.ProbeOne(ctx, agentID)
-	isAuth := false
-	if err == nil {
-		if p, ok := ad.Probes[domain.TierL1]; ok && p.ErrorClass == domain.ErrorClassOK {
-			isAuth = true
-		}
+func (a *App) buildAgentCmd(agentID string, prompt string) (exec.Cmd, error) {
+	def, ok := a.defs[agentID]
+	if !ok {
+		return exec.Cmd{}, fmt.Errorf("unknown adapter: %s", agentID)
 	}
-	if err != nil || !ad.Installed || !isAuth {
-		errMsg := "uninstalled or unauthenticated"
-		if err != nil {
-			errMsg = err.Error()
-		}
-		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: errMsg}, false
+	cmdStr := def.HeadlessCommand
+	if cmdStr == "" {
+		cmdStr = def.Binary + " -p"
 	}
-	return RunPromptAttempt{AgentID: agentID, Success: true}, true
+	tokens := strings.Fields(cmdStr)
+	if len(tokens) == 0 {
+		tokens = []string{def.Binary, "-p"}
+	}
+	return exec.Cmd{
+		Binary:  tokens[0],
+		Args:    append(tokens[1:], prompt),
+		Timeout: 60 * time.Second,
+	}, nil
+}
+
+func (a *App) tryAgent(ctx context.Context, agentID string, prompt string) (RunPromptAttempt, string, bool) {
+	def, ok := a.defs[agentID]
+	if !ok {
+		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: "unknown adapter"}, "", false
+	}
+	if _, err := platform.LookPath(def.Binary); err != nil {
+		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: "uninstalled"}, "", false
+	}
+	cmd, err := a.buildAgentCmd(agentID, prompt)
+	if err != nil {
+		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: err.Error()}, "", false
+	}
+	return a.runAndClassify(ctx, agentID, cmd)
+}
+
+func (a *App) runAndClassify(ctx context.Context, agentID string, cmd exec.Cmd) (RunPromptAttempt, string, bool) {
+	res, runErr := a.runner.Run(ctx, cmd)
+	if runErr != nil && res.ExitCode == 0 {
+		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: runErr.Error()}, "", false
+	}
+	def := a.defs[agentID]
+	raw := domain.RawOutput{
+		AgentID:  agentID,
+		ExitCode: res.ExitCode,
+		Stdout:   string(res.Stdout),
+		Stderr:   string(res.Stderr),
+	}
+	cl := classify.Classify(raw, def.Quirks)
+	if cl.CaughtLie || cl.ErrorClass != domain.ErrorClassOK || res.ExitCode != 0 {
+		errMsg := cl.Reason
+		if errMsg == "" {
+			errMsg = strings.TrimSpace(string(res.Stderr))
+			if errMsg == "" {
+				errMsg = fmt.Sprintf("exit code %d", res.ExitCode)
+			}
+		}
+		return RunPromptAttempt{AgentID: agentID, Success: false, ErrorMsg: errMsg}, "", false
+	}
+	out := strings.TrimSpace(string(res.Stdout))
+	return RunPromptAttempt{AgentID: agentID, Success: true}, out, true
 }

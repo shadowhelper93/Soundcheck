@@ -3,6 +3,7 @@ package exec
 
 import (
 	"context"
+	"io"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Cmd struct {
 	Args    []string
 	Env     []string
 	Dir     string
+	Stdin   io.Reader
 	Timeout time.Duration
 }
 

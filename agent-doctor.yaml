@@ -18,6 +18,9 @@ roles:
     - "codex:gpt-5-mini"
   reviewer:
     - "codex:*"
+    - "agy:*"
+    - "opencode:*"
+    - "copilot:*"
     - "claude:*"
 
 policy:

@@ -50,3 +50,7 @@ func cacheDir() (string, error) {
 	}
 	return filepath.Join(home, "AppData", "Local", "soundcheck"), nil
 }
+
+func enrichEnv(env []string) []string {
+	return env
+}

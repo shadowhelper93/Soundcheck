@@ -4,6 +4,7 @@ package classify
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/soundcheck/soundcheck/internal/core/domain"
@@ -23,6 +24,9 @@ func Classify(raw domain.RawOutput, quirks []domain.Quirk) domain.Classification
 		return enrichWithQuirks(c, quirks)
 	}
 	if c, ok := classifyGemini(raw); ok {
+		return enrichWithQuirks(c, quirks)
+	}
+	if c, ok := matchTableQuirk(raw, quirks); ok {
 		return enrichWithQuirks(c, quirks)
 	}
 
@@ -285,4 +289,35 @@ func enrichWithQuirks(c domain.Classification, quirks []domain.Quirk) domain.Cla
 		}
 	}
 	return c
+}
+
+func matchTableQuirk(raw domain.RawOutput, quirks []domain.Quirk) (domain.Classification, bool) {
+	for _, q := range quirks {
+		if q.AgentID != "" && q.AgentID != raw.AgentID {
+			continue
+		}
+		if q.TriggerExitCode != nil && *q.TriggerExitCode != raw.ExitCode {
+			continue
+		}
+		if q.TriggerRegex == "" {
+			continue
+		}
+		re, err := regexp.Compile(q.TriggerRegex)
+		if err != nil {
+			continue
+		}
+		if re.MatchString(raw.Stdout) || re.MatchString(raw.Stderr) {
+			caughtLie := (raw.ExitCode == 0 && q.ErrorClass != domain.ErrorClassOK) ||
+				(raw.ExitCode != 0 && q.ErrorClass == domain.ErrorClassOK)
+			return domain.Classification{
+				ErrorClass: q.ErrorClass,
+				Reason:     q.Description,
+				CaughtLie:  caughtLie,
+				Rewritten:  q.RewrittenExitCode,
+				BackoffMin: q.CooldownMinutes,
+				QuirkID:    q.ID,
+			}, true
+		}
+	}
+	return domain.Classification{}, false
 }

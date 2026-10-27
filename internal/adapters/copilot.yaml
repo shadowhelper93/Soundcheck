@@ -30,6 +30,22 @@ quirks:
     triggerRegex: "(?i)permission denied"
     errorClass: permission_denied
     caughtLie: false
+  - id: gh-inactive-account-exit1
+    agentId: copilot
+    name: "GH Auth Status Inactive Account False Exit 1"
+    docIssue: "GitHub CLI exits 1 if any secondary inactive account in keyring has expired token"
+    category: false_exit_code
+    description: "gh auth status verified active account is logged in despite inactive account token expiration."
+    referenceUrl: "https://github.com/cli/cli/issues"
+    discoveredDate: "2026-10-27"
+    severity: medium
+    impact: "Copilot falsely marked unauthenticated"
+    resolution: "Rewrite exit code to 0 if Active account is true"
+    triggerExitCode: 1
+    triggerRegex: "(?i)Active account:\\s*true"
+    errorClass: ok
+    rewrittenExitCode: 0
+    caughtLie: true
 models:
   - id: gpt-4o-copilot
     displayName: "Copilot GPT-4o"

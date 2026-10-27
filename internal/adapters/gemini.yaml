@@ -50,7 +50,7 @@ probeSpecs:
   L1:
     level: L1
     command: "gemini --version"
-    timeoutMs: 4000
+    timeoutMs: 6000
     expectedExitCode: 0
   L2:
     level: L2

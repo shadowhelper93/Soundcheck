@@ -10,6 +10,8 @@ import (
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/soundcheck/soundcheck/internal/edge/platform"
 )
 
 // DefaultPTYBufferSize is the default ring buffer capacity for terminal history (64KB).
@@ -92,14 +94,20 @@ func (r *ptyRunner) Start(ctx context.Context, cmd Cmd, sz Winsize) (PTYSession,
 }
 
 func buildOSCmd(ctx context.Context, cmd Cmd) *exec.Cmd {
+	bin := cmd.Binary
+	if resolved, err := platform.LookPath(cmd.Binary); err == nil {
+		bin = resolved
+	}
 	// #nosec G204
-	osCmd := exec.CommandContext(ctx, cmd.Binary, cmd.Args...)
+	osCmd := exec.CommandContext(ctx, bin, cmd.Args...)
 	if cmd.Dir != "" {
 		osCmd.Dir = cmd.Dir
 	}
+	env := os.Environ()
 	if len(cmd.Env) > 0 {
-		osCmd.Env = append(os.Environ(), cmd.Env...)
+		env = append(env, cmd.Env...)
 	}
+	osCmd.Env = platform.EnrichEnv(env)
 	osCmd.Cancel = func() error {
 		return killProcessGroup(osCmd)
 	}

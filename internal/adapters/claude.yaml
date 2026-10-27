@@ -8,7 +8,7 @@ installed: false
 authMethodSupported:
   - "OAuth subscription"
   - "ANTHROPIC_API_KEY"
-headlessCommand: "claude -p --output-format json"
+headlessCommand: "claude -p --output-format json --bare"
 permissionModes:
   - "--permission-mode"
   - "--allowedTools"
@@ -97,7 +97,7 @@ probeSpecs:
     expectedExitCode: 0
   L1:
     level: L1
-    command: "claude auth status --output-format json"
+    command: "claude auth status"
     timeoutMs: 4000
     expectedExitCode: 0
   L2:
