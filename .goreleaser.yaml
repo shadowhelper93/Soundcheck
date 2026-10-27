@@ -25,10 +25,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64
-
 archives:
   - id: default
     format: tar.gz
@@ -39,6 +35,9 @@ archives:
     files:
       - README.md
       - LICENSE*
+
+sboms:
+  - artifacts: archive
 
 checksum:
   name_template: "checksums.txt"
@@ -53,3 +52,22 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
+
+brews:
+  - repository:
+      owner: soundcheck
+      name: homebrew-tap
+    directory: Formula
+    homepage: "https://github.com/soundcheck/soundcheck"
+    description: "Adaptive multi-CLI coding agent orchestrator with automatic failover"
+    license: "Apache-2.0"
+    test: |
+      system "#{bin}/soundcheck", "version"
+
+scoops:
+  - repository:
+      owner: soundcheck
+      name: scoop-bucket
+    homepage: "https://github.com/soundcheck/soundcheck"
+    description: "Adaptive multi-CLI coding agent orchestrator with automatic failover"
+    license: "Apache-2.0"
