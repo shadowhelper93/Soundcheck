@@ -186,17 +186,36 @@ func TestCLIDoctor(t *testing.T) {
 			t.Fatalf("expected 6 functional agents, got %d", report.Summary.FunctionalAgents)
 		}
 	})
+}
 
-	t.Run("doctor ndjson", func(t *testing.T) {
-		code, out, _ := executeCommand(a, "doctor", "--ndjson")
-		if code != cli.ExitOK {
-			t.Fatalf("expected ExitOK (0), got %d", code)
+func TestCLIDoctorNDJSON(t *testing.T) {
+	a := createTestApp(t)
+	code, out, _ := executeCommand(a, "doctor", "--ndjson")
+	if code != cli.ExitOK {
+		t.Fatalf("expected ExitOK (0), got %d", code)
+	}
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if len(lines) < 4 {
+		t.Fatalf("expected at least 4 NDJSON lines, got %d", len(lines))
+	}
+	var resolutionRoles []string
+	for _, line := range lines {
+		var m map[string]any
+		if err := json.Unmarshal([]byte(line), &m); err == nil && m["type"] == "resolution" {
+			if r, ok := m["role"].(string); ok {
+				resolutionRoles = append(resolutionRoles, r)
+			}
 		}
-		lines := strings.Split(strings.TrimSpace(out), "\n")
-		if len(lines) < 4 {
-			t.Fatalf("expected at least 4 NDJSON lines, got %d", len(lines))
+	}
+	expectedRoles := []string{"primary", "subagent", "auxiliary", "reviewer"}
+	if len(resolutionRoles) != len(expectedRoles) {
+		t.Fatalf("expected %d resolution roles, got %d: %v", len(expectedRoles), len(resolutionRoles), resolutionRoles)
+	}
+	for i, role := range expectedRoles {
+		if resolutionRoles[i] != role {
+			t.Fatalf("expected role %s at index %d, got %s", role, i, resolutionRoles[i])
 		}
-	})
+	}
 }
 
 func TestCLIProbe(t *testing.T) {
@@ -320,14 +339,33 @@ func TestCLIInvalidConfig(t *testing.T) {
 	if code != cli.ExitConfigInvalid {
 		t.Fatalf("expected ExitConfigInvalid (4), got %d", code)
 	}
+	if !strings.Contains(stderr.String(), "config error") {
+		t.Fatalf("expected stderr to contain 'config error', got: %s", stderr.String())
+	}
 }
 
 func TestCLIUsageError(t *testing.T) {
 	a := createTestApp(t)
-	code, _, _ := executeCommand(a, "nonexistent-command")
-	if code != cli.ExitUsage {
-		t.Fatalf("expected ExitUsage (3), got %d", code)
-	}
+
+	t.Run("unknown command", func(t *testing.T) {
+		code, _, stderr := executeCommand(a, "nonexistent-command")
+		if code != cli.ExitUsage {
+			t.Fatalf("expected ExitUsage (3), got %d", code)
+		}
+		if !strings.Contains(stderr, "unknown command") {
+			t.Fatalf("expected stderr to contain 'unknown command', got: %s", stderr)
+		}
+	})
+
+	t.Run("unknown flag", func(t *testing.T) {
+		code, _, stderr := executeCommand(a, "version", "--unknown-flag")
+		if code != cli.ExitUsage {
+			t.Fatalf("expected ExitUsage (3), got %d", code)
+		}
+		if !strings.Contains(stderr, "unknown flag") {
+			t.Fatalf("expected stderr to contain 'unknown flag', got: %s", stderr)
+		}
+	})
 }
 
 func TestCLIDoctorDegradedExitCode(t *testing.T) {

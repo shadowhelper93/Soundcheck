@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/soundcheck/soundcheck/internal/app"
 	"github.com/soundcheck/soundcheck/internal/edge/config"
@@ -81,7 +83,33 @@ func ExecuteCustom(ctx context.Context, cfg ExecutionConfig) int {
 	}
 
 	err := cmd.ExecuteContext(ctx)
+	printErrorDiagnostic(cmd.ErrOrStderr(), err)
 	return extractExitCode(err)
+}
+
+func printErrorDiagnostic(w io.Writer, err error) {
+	if err == nil {
+		return
+	}
+	var exitErr *ExitError
+	if errors.As(err, &exitErr) {
+		if exitErr.Err != nil {
+			_, _ = fmt.Fprintln(w, exitErr.Err.Error())
+		}
+		return
+	}
+	_, _ = fmt.Fprintln(w, err.Error())
+}
+
+var usagePatterns = []string{
+	"unknown command",
+	"unknown flag",
+	"unknown shorthand",
+	"flag needs an argument",
+	"invalid argument",
+	"bad flag syntax",
+	"required flag",
+	"arg(s)",
 }
 
 func extractExitCode(err error) int {
@@ -92,7 +120,34 @@ func extractExitCode(err error) int {
 	if errors.As(err, &exitErr) {
 		return exitErr.Code
 	}
-	return ExitUsage
+	if isUsageError(err) {
+		return ExitUsage
+	}
+	return ExitFailed
+}
+
+func isUsageError(err error) bool {
+	if isPFlagError(err) {
+		return true
+	}
+	msg := err.Error()
+	for _, p := range usagePatterns {
+		if strings.Contains(msg, p) {
+			return true
+		}
+	}
+	return false
+}
+
+func isPFlagError(err error) bool {
+	var notExist *pflag.NotExistError
+	var valReq *pflag.ValueRequiredError
+	var invVal *pflag.InvalidValueError
+	var invSyn *pflag.InvalidSyntaxError
+	return errors.As(err, &notExist) ||
+		errors.As(err, &valReq) ||
+		errors.As(err, &invVal) ||
+		errors.As(err, &invSyn)
 }
 
 // NewRootCmd constructs the soundcheck Cobra root command.

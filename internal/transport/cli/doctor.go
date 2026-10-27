@@ -96,8 +96,9 @@ func outputDoctorNDJSON(w io.Writer, r app.DoctorReport) error {
 			return err
 		}
 	}
-	for role, res := range r.Resolutions {
-		if err := enc.Encode(map[string]any{"type": "resolution", "role": role, "data": res}); err != nil {
+	roles := sortedRoles(r.Resolutions)
+	for _, role := range roles {
+		if err := enc.Encode(map[string]any{"type": "resolution", "role": role, "data": r.Resolutions[role]}); err != nil {
 			return err
 		}
 	}

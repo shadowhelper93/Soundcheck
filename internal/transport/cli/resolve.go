@@ -108,12 +108,28 @@ func renderResolutionsText(w io.Writer, res map[domain.Role]domain.DetailedResol
 }
 
 func sortedRoles(res map[domain.Role]domain.DetailedResolution) []domain.Role {
-	roles := make([]domain.Role, 0, len(res))
-	for r := range res {
-		roles = append(roles, r)
+	standard := []domain.Role{
+		domain.RolePrimary,
+		domain.RoleSubagent,
+		domain.RoleAuxiliary,
+		domain.RoleReviewer,
 	}
-	sort.Slice(roles, func(i, j int) bool { return roles[i] < roles[j] })
-	return roles
+	roles := make([]domain.Role, 0, len(res))
+	seen := make(map[domain.Role]bool, len(res))
+	for _, r := range standard {
+		if _, ok := res[r]; ok {
+			roles = append(roles, r)
+			seen[r] = true
+		}
+	}
+	var extra []domain.Role
+	for r := range res {
+		if !seen[r] {
+			extra = append(extra, r)
+		}
+	}
+	sort.Slice(extra, func(i, j int) bool { return extra[i] < extra[j] })
+	return append(roles, extra...)
 }
 
 func colorizeStatus(status string) string {
