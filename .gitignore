@@ -1,9 +1,29 @@
-node_modules
-build/
-dist/
+# Binaries & build artifacts
 bin/
+dist/
+build/
 coverage/
+
+# Dependencies
+node_modules/
+
+# OS & Editor
 .DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment & logs
 *.log
 .env*
 !.env.example
+
+# Scratchpads, plans & agent harness artifacts
+plan/
+HANDOFF.md
+.soundcheck/
+.soundtrack*
+.superpowers/
+.aistudio/
+.codegraph/
