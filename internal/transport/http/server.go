@@ -1,121 +1,157 @@
-// Package http provides the HTTP server and web UI transport layer for Soundcheck.
+// Package http provides the HTTP server and REST/SSE/WS transport layer for Soundcheck.
 package http
 
 import (
+	"context"
 	"embed"
-	"encoding/json"
-	"io/fs"
+	"errors"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
 	"github.com/soundcheck/soundcheck/internal/app"
+	"github.com/soundcheck/soundcheck/internal/edge/exec"
 )
 
 //go:embed static/*
 var staticFiles embed.FS
 
-// Server represents the Soundcheck HTTP server and web UI.
+// Server represents the Soundcheck HTTP and WebSocket transport server.
 type Server struct {
-	app *app.App
-	mux *http.ServeMux
+	app            *app.App
+	addr           string
+	authToken      string
+	allowedOrigins []string
+	ptyRunner      exec.PTYRunner
+	mux            *http.ServeMux
+	server         *http.Server
+}
+
+// ServerOption configures Server parameters.
+type ServerOption func(*Server)
+
+// WithAddr configures the listening address.
+func WithAddr(addr string) ServerOption {
+	return func(s *Server) { s.addr = addr }
+}
+
+// WithAuthToken sets the optional Bearer authentication token.
+func WithAuthToken(token string) ServerOption {
+	return func(s *Server) { s.authToken = token }
+}
+
+// WithAllowedOrigins configures explicit allowed origins.
+func WithAllowedOrigins(origins ...string) ServerOption {
+	return func(s *Server) { s.allowedOrigins = append(s.allowedOrigins, origins...) }
+}
+
+// WithPTYRunner sets the PTY runner for WebSocket terminal sessions.
+func WithPTYRunner(runner exec.PTYRunner) ServerOption {
+	return func(s *Server) { s.ptyRunner = runner }
 }
 
 // NewServer initializes and returns a new Server instance.
-func NewServer(a *app.App) *Server {
+func NewServer(a *app.App, opts ...ServerOption) *Server {
 	s := &Server{
-		app: a,
-		mux: http.NewServeMux(),
+		app:  a,
+		addr: "127.0.0.1:3000",
+		mux:  http.NewServeMux(),
 	}
-	s.routes()
+	for _, opt := range opts {
+		opt(s)
+	}
+	s.registerRoutes()
 	return s
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !s.checkOrigin(w, r) {
+		return
+	}
+	if !s.checkAuth(w, r) {
+		return
+	}
 	s.mux.ServeHTTP(w, r)
 }
 
-func (s *Server) routes() {
-	s.mux.HandleFunc("/api/health", s.handleHealth)
-	s.mux.HandleFunc("/api/doctor", s.handleDoctor)
-	s.mux.HandleFunc("/api/probe", s.handleProbe)
-	s.mux.HandleFunc("/api/resolve", s.handleResolve)
-	s.mux.HandleFunc("/api/manifest", s.handleManifest)
+func (s *Server) checkOrigin(w http.ResponseWriter, r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		return true
+	}
+	if !s.isOriginAllowed(origin) {
+		http.Error(w, "Forbidden: invalid origin", http.StatusForbidden)
+		return false
+	}
+	w.Header().Set("Access-Control-Allow-Origin", origin)
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return false
+	}
+	return true
+}
 
-	subFS, err := fs.Sub(staticFiles, "static")
+func (s *Server) isOriginAllowed(origin string) bool {
+	u, err := url.Parse(origin)
 	if err != nil {
-		panic(err)
+		return false
 	}
-	fileServer := http.FileServer(http.FS(subFS))
-	s.mux.Handle("/", fileServer)
-}
-
-func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, map[string]string{"status": "ok", "version": "1.4.0"})
-}
-
-func (s *Server) handleDoctor(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	deep := r.URL.Query().Get("deep") == "true"
-	force := r.URL.Query().Get("force") == "true"
-
-	var opts []app.DoctorOption
-	if deep {
-		opts = append(opts, app.WithDoctorDeep(true))
+	host := u.Hostname()
+	if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return true
 	}
-	if force {
-		opts = append(opts, app.WithDoctorForce(true))
-	}
-
-	report, err := s.app.Doctor(ctx, opts...)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, report)
-}
-
-func (s *Server) handleProbe(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	adapterID := r.URL.Query().Get("adapter")
-	if adapterID != "" {
-		adapter, err := s.app.ProbeOne(ctx, adapterID)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusNotFound)
-			return
+	for _, allowed := range s.allowedOrigins {
+		if strings.EqualFold(origin, allowed) || strings.EqualFold(host, allowed) {
+			return true
 		}
-		writeJSON(w, adapter)
-		return
 	}
-
-	report, err := s.app.Doctor(ctx, app.WithDoctorDeep(true))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	writeJSON(w, report.Adapters)
+	return false
 }
 
-func (s *Server) handleResolve(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	roleFilter := r.URL.Query().Get("role")
-	resolutions, err := s.app.Resolve(ctx, roleFilter)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+func (s *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
+	if s.authToken == "" || r.URL.Path == "/api/health" || r.Method == http.MethodOptions {
+		return true
 	}
-	writeJSON(w, resolutions)
+	auth := r.Header.Get("Authorization")
+	parts := strings.SplitN(auth, " ", 2)
+	if len(parts) == 2 && parts[0] == "Bearer" && parts[1] == s.authToken {
+		return true
+	}
+	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	return false
 }
 
-func (s *Server) handleManifest(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	manifest, err := s.app.Manifest(ctx)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+// Start launches the HTTP server with graceful shutdown when ctx is canceled.
+func (s *Server) Start(ctx context.Context) error {
+	s.server = &http.Server{
+		Addr:              s.addr,
+		Handler:           s,
+		ReadHeaderTimeout: 5 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
-	writeJSON(w, manifest)
+
+	errCh := make(chan error, 1)
+	go func() {
+		if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- err
+		}
+		close(errCh)
+	}()
+
+	select {
+	case <-ctx.Done():
+		shutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return s.server.Shutdown(shutCtx)
+	case err := <-errCh:
+		return err
+	}
 }
 
-func writeJSON(w http.ResponseWriter, v any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(w).Encode(v)
+// Addr returns the configured address.
+func (s *Server) Addr() string {
+	return s.addr
 }

@@ -181,10 +181,13 @@ func addPersistentFlags(cmd *cobra.Command, opts *RootOptions) {
 func addCommands(cmd *cobra.Command, opts *RootOptions, a *app.App) {
 	cmd.AddCommand(newDoctorCmd(opts, a))
 	cmd.AddCommand(newProbeCmd(opts, a))
+	cmd.AddCommand(newCheckCmd(opts, a))
 	cmd.AddCommand(newResolveCmd(opts, a))
 	cmd.AddCommand(newManifestCmd(opts, a))
+	cmd.AddCommand(newFixCmd(opts, a))
 	cmd.AddCommand(newRunCmd(opts, a))
 	cmd.AddCommand(newServeCmd(opts, a))
+	cmd.AddCommand(newMCPCmd(opts, a))
 	cmd.AddCommand(newVersionCmd(opts))
 }
 

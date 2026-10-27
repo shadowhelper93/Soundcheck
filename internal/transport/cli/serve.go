@@ -2,8 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/soundcheck/soundcheck/internal/app"
 	goserver "github.com/soundcheck/soundcheck/internal/transport/http"
@@ -11,35 +9,35 @@ import (
 )
 
 func newServeCmd(opts *RootOptions, a *app.App) *cobra.Command {
-	var port int
+	var (
+		host  string
+		port  int
+		token string
+	)
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Start HTTP server and web UI dashboard",
+		Short: "Start HTTP server, REST API, and web UI",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			appInstance, err := resolveApp(opts, a)
 			if err != nil {
 				return err
 			}
-
-			srv := goserver.NewServer(appInstance)
-			addr := fmt.Sprintf(":%d", port)
-			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Soundcheck server running at http://localhost%s\n", addr)
-
-			httpServer := &http.Server{
-				Addr:              addr,
-				Handler:           srv,
-				ReadHeaderTimeout: 5 * time.Second,
-				ReadTimeout:       15 * time.Second,
-				WriteTimeout:      30 * time.Second,
-				IdleTimeout:       60 * time.Second,
+			addr := fmt.Sprintf("%s:%d", host, port)
+			var srvOpts []goserver.ServerOption
+			srvOpts = append(srvOpts, goserver.WithAddr(addr))
+			if token != "" {
+				srvOpts = append(srvOpts, goserver.WithAuthToken(token))
 			}
-
-			if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			srv := goserver.NewServer(appInstance, srvOpts...)
+			_, _ = fmt.Fprintf(cmd.OutOrStdout(), "Soundcheck server listening at http://%s\n", addr)
+			if err := srv.Start(cmd.Context()); err != nil {
 				return &ExitError{Code: ExitFailed, Err: err}
 			}
 			return nil
 		},
 	}
-	cmd.Flags().IntVarP(&port, "port", "p", 8080, "port to listen on")
+	cmd.Flags().StringVar(&host, "host", "127.0.0.1", "host to bind to")
+	cmd.Flags().IntVarP(&port, "port", "p", 3000, "port to listen on")
+	cmd.Flags().StringVar(&token, "token", "", "optional Bearer auth token")
 	return cmd
 }

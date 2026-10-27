@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/soundcheck/soundcheck/internal/adapters"
@@ -20,6 +21,7 @@ import (
 
 // App orchestrates CLI adapters, probers, config, and core engines.
 type App struct {
+	mu       sync.RWMutex
 	cfg      domain.Config
 	runner   exec.Runner
 	store    store.Store
@@ -117,7 +119,8 @@ func (a *App) ProbeOne(ctx context.Context, adapterID string) (domain.Adapter, e
 // Resolve evaluates role assignments against current adapter capabilities.
 func (a *App) Resolve(ctx context.Context, roleFilter string) (map[domain.Role]domain.DetailedResolution, error) {
 	probed := a.prober.ProbeAll(ctx, a.defList)
-	res, err := resolve.Roles(a.cfg, probed, time.Now())
+	cfg := a.Config()
+	res, err := resolve.Roles(cfg, probed, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -148,6 +151,25 @@ func (a *App) HostInfo(ctx context.Context) domain.HostInfo {
 		NodeVersion: detectNodeVersion(ctx, a.runner),
 		GitWorktree: detectGitWorktree(ctx, a.runner),
 	}
+}
+
+// Config returns the current domain configuration.
+func (a *App) Config() domain.Config {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.cfg
+}
+
+// SetConfig updates the domain configuration.
+func (a *App) SetConfig(cfg domain.Config) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.cfg = cfg
+}
+
+// Definitions returns the list of loaded adapter definitions.
+func (a *App) Definitions() []adapters.Definition {
+	return a.defList
 }
 
 func detectNodeVersion(ctx context.Context, runner exec.Runner) string {

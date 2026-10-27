@@ -488,6 +488,39 @@ func TestBinarySubprocessExecution(t *testing.T) {
 	})
 }
 
+func TestCLIServeAndMCP(t *testing.T) {
+	a := createTestApp(t)
+
+	t.Run("serve help", func(t *testing.T) {
+		code, out, _ := executeCommand(a, "serve", "--help")
+		if code != cli.ExitOK {
+			t.Fatalf("expected ExitOK (0), got %d", code)
+		}
+		if !strings.Contains(out, "Start HTTP server") {
+			t.Errorf("expected serve help text, got: %s", out)
+		}
+	})
+
+	t.Run("mcp ping", func(t *testing.T) {
+		var stdin bytes.Buffer
+		var stdout bytes.Buffer
+		stdin.WriteString(`{"jsonrpc":"2.0","id":1,"method":"ping"}` + "\n")
+
+		code := cli.ExecuteCustom(context.Background(), cli.ExecutionConfig{
+			Args: []string{"mcp"},
+			In:   &stdin,
+			Out:  &stdout,
+			App:  a,
+		})
+		if code != cli.ExitOK {
+			t.Fatalf("expected ExitOK (0), got %d", code)
+		}
+		if !strings.Contains(stdout.String(), `"id":1`) {
+			t.Errorf("expected mcp ping response, got: %s", stdout.String())
+		}
+	})
+}
+
 func BenchmarkVersionColdStart(b *testing.B) {
 	start := time.Now()
 	var stdout bytes.Buffer

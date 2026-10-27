@@ -45,8 +45,9 @@ func (a *App) Doctor(ctx context.Context, opts ...DoctorOption) (DoctorReport, e
 		opt(&dopts)
 	}
 
+	cfg := a.Config()
 	var probeOpts []probe.ProbeOption
-	if dopts.deep || a.cfg.Policy.Probe.Deep {
+	if dopts.deep || cfg.Policy.Probe.Deep {
 		probeOpts = append(probeOpts, probe.WithCallMaxTier(domain.TierL3))
 	}
 	if dopts.forceLive {
@@ -56,7 +57,7 @@ func (a *App) Doctor(ctx context.Context, opts ...DoctorOption) (DoctorReport, e
 	probed := a.prober.ProbeAll(ctx, a.defList, probeOpts...)
 	now := time.Now()
 
-	resolutions, err := resolve.Roles(a.cfg, probed, now)
+	resolutions, err := resolve.Roles(cfg, probed, now)
 	if err != nil {
 		return DoctorReport{}, fmt.Errorf("resolve roles: %w", err)
 	}
