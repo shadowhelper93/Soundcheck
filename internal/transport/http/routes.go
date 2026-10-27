@@ -3,7 +3,6 @@ package http
 import (
 	"encoding/json"
 	"fmt"
-	"io/fs"
 	"net/http"
 	"strings"
 
@@ -179,14 +178,6 @@ func (s *Server) handleProbeCompat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.handleProbeList(w, r)
-}
-
-func (s *Server) registerStatic() {
-	subFS, err := fs.Sub(staticFiles, "static")
-	if err != nil {
-		return
-	}
-	s.mux.Handle("/", http.FileServer(http.FS(subFS)))
 }
 
 func parseDoctorOpts(r *http.Request) []app.DoctorOption {

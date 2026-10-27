@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"embed"
 	"errors"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/soundcheck/soundcheck/internal/app"
 	"github.com/soundcheck/soundcheck/internal/edge/exec"
+	"github.com/soundcheck/soundcheck/ui"
 )
 
 //go:embed static/*
@@ -26,6 +28,7 @@ type Server struct {
 	authToken      string
 	allowedOrigins []string
 	ptyRunner      exec.PTYRunner
+	assets         fs.FS
 	mux            *http.ServeMux
 	server         *http.Server
 }
@@ -53,6 +56,11 @@ func WithPTYRunner(runner exec.PTYRunner) ServerOption {
 	return func(s *Server) { s.ptyRunner = runner }
 }
 
+// WithAssets configures the static UI assets filesystem.
+func WithAssets(assets fs.FS) ServerOption {
+	return func(s *Server) { s.assets = assets }
+}
+
 // NewServer initializes and returns a new Server instance.
 func NewServer(a *app.App, opts ...ServerOption) *Server {
 	s := &Server{
@@ -62,6 +70,13 @@ func NewServer(a *app.App, opts ...ServerOption) *Server {
 	}
 	for _, opt := range opts {
 		opt(s)
+	}
+	if s.assets == nil {
+		if a, err := ui.Assets(); err == nil {
+			s.assets = a
+		} else if subFS, err := fs.Sub(staticFiles, "static"); err == nil {
+			s.assets = subFS
+		}
 	}
 	s.registerRoutes()
 	return s
