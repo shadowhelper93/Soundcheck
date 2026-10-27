@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -109,10 +110,15 @@ func createTestApp(t testing.TB) *app.App {
 }
 
 func executeCommand(a *app.App, args ...string) (int, string, string) {
+	return executeCommandWithIn(a, nil, args...)
+}
+
+func executeCommandWithIn(a *app.App, in io.Reader, args ...string) (int, string, string) {
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	code := cli.ExecuteCustom(context.Background(), cli.ExecutionConfig{
 		Args: args,
+		In:   in,
 		Out:  &stdout,
 		Err:  &stderr,
 		App:  a,

@@ -70,6 +70,10 @@ func handleQuirk(quirk, pidFile string) {
 			fmt.Println(chunk)
 		}
 		os.Exit(0)
+	case "interactive":
+		handleInteractive()
+	case "interactive_resize":
+		handleInteractiveResize()
 	default:
 		fmt.Fprintf(os.Stderr, "unknown quirk: %s\n", quirk)
 		os.Exit(1)
@@ -92,4 +96,33 @@ func handleSpawnAndHang(pidFile string) {
 	}
 	fmt.Printf("SPAWNED_PID:%d\n", child.Process.Pid)
 	time.Sleep(24 * time.Hour)
+}
+
+func handleInteractive() {
+	fmt.Println("⠋ initializing agent...")
+	fmt.Print("Proceed? [y/N]: ")
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	if strings.ToLower(strings.TrimSpace(answer)) == "y" {
+		fmt.Println("CONFIRMED")
+		os.Exit(0)
+	}
+	fmt.Println("ABORTED")
+	os.Exit(1)
+}
+
+func handleInteractiveResize() {
+	fmt.Println("ready for resize")
+	sigCh := make(chan os.Signal, 1)
+	notifyResize(sigCh)
+	go func() {
+		<-sigCh
+		fmt.Println("RESIZED")
+	}()
+	var answer string
+	_, _ = fmt.Scanln(&answer)
+	if strings.ToLower(strings.TrimSpace(answer)) == "y" {
+		fmt.Println("CONFIRMED")
+	}
+	os.Exit(0)
 }

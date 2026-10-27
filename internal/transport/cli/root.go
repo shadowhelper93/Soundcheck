@@ -39,6 +39,7 @@ type RootOptions struct {
 // ExecutionConfig configures CLI execution streams and dependencies.
 type ExecutionConfig struct {
 	Args []string
+	In   io.Reader
 	Out  io.Writer
 	Err  io.Writer
 	App  *app.App
@@ -80,6 +81,9 @@ func ExecuteCustom(ctx context.Context, cfg ExecutionConfig) int {
 	}
 	if cfg.Err != nil {
 		cmd.SetErr(cfg.Err)
+	}
+	if cfg.In != nil {
+		cmd.SetIn(cfg.In)
 	}
 
 	err := cmd.ExecuteContext(ctx)
@@ -179,6 +183,8 @@ func addCommands(cmd *cobra.Command, opts *RootOptions, a *app.App) {
 	cmd.AddCommand(newProbeCmd(opts, a))
 	cmd.AddCommand(newResolveCmd(opts, a))
 	cmd.AddCommand(newManifestCmd(opts, a))
+	cmd.AddCommand(newRunCmd(opts, a))
+	cmd.AddCommand(newServeCmd(opts, a))
 	cmd.AddCommand(newVersionCmd(opts))
 }
 

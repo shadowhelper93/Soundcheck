@@ -35,6 +35,10 @@ const (
 	EventStderr EventType = "stderr"
 	// EventExit indicates process completion.
 	EventExit EventType = "exit"
+	// EventOutput indicates data received from an interactive terminal (PTY).
+	EventOutput EventType = "output"
+	// EventResize indicates a terminal window resize event.
+	EventResize EventType = "resize"
 )
 
 // Event represents a single chunk or termination signal from an executing command.
