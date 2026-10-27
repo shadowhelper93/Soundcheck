@@ -101,3 +101,26 @@ func TestCustomWithAssetsOption(t *testing.T) {
 		t.Fatalf("expected fallback to custom mock UI, got %s", recRoute.Body.String())
 	}
 }
+
+func TestStaticAPINotFound(t *testing.T) {
+	srv, _ := newTestServer(t)
+
+	for _, method := range []string{"GET", "POST", "PUT", "DELETE"} {
+		req := httptest.NewRequest(method, "/api/v1/unknown-endpoint", nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s /api/v1/unknown-endpoint expected 404, got %d", method, rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), `"error"`) {
+			t.Fatalf("expected json error response, got %s", rec.Body.String())
+		}
+	}
+
+	reqAPI := httptest.NewRequest("GET", "/api", nil)
+	recAPI := httptest.NewRecorder()
+	srv.ServeHTTP(recAPI, reqAPI)
+	if recAPI.Code != http.StatusNotFound {
+		t.Fatalf("GET /api expected 404, got %d", recAPI.Code)
+	}
+}

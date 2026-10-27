@@ -29,6 +29,7 @@ type Server struct {
 	allowedOrigins []string
 	ptyRunner      exec.PTYRunner
 	assets         fs.FS
+	fileServer     http.Handler
 	mux            *http.ServeMux
 	server         *http.Server
 }
@@ -58,7 +59,12 @@ func WithPTYRunner(runner exec.PTYRunner) ServerOption {
 
 // WithAssets configures the static UI assets filesystem.
 func WithAssets(assets fs.FS) ServerOption {
-	return func(s *Server) { s.assets = assets }
+	return func(s *Server) {
+		s.assets = assets
+		if assets != nil {
+			s.fileServer = http.FileServer(http.FS(assets))
+		}
+	}
 }
 
 // NewServer initializes and returns a new Server instance.
@@ -77,6 +83,9 @@ func NewServer(a *app.App, opts ...ServerOption) *Server {
 		} else if subFS, err := fs.Sub(staticFiles, "static"); err == nil {
 			s.assets = subFS
 		}
+	}
+	if s.assets != nil && s.fileServer == nil {
+		s.fileServer = http.FileServer(http.FS(s.assets))
 	}
 	s.registerRoutes()
 	return s

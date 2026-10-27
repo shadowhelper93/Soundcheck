@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
-	"path/filepath"
+	"path"
 	"strings"
 	"time"
 )
@@ -17,11 +17,15 @@ func (s *Server) registerStatic() {
 }
 
 func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	clean := path.Clean(strings.TrimPrefix(r.URL.Path, "/"))
+	if strings.HasPrefix(clean, "api/") || clean == "api" {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	clean := filepath.Clean(strings.TrimPrefix(r.URL.Path, "/"))
 	if clean == "." || clean == "" {
 		s.serveIndex(w, r)
 		return
@@ -36,8 +40,8 @@ func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
-func (s *Server) serveFile(w http.ResponseWriter, r *http.Request, path string) bool {
-	f, err := s.assets.Open(path)
+func (s *Server) serveFile(w http.ResponseWriter, r *http.Request, filePath string) bool {
+	f, err := s.assets.Open(filePath)
 	if err != nil {
 		return false
 	}
@@ -46,7 +50,11 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request, path string) 
 	if err != nil || stat.IsDir() {
 		return false
 	}
-	http.FileServer(http.FS(s.assets)).ServeHTTP(w, r)
+	if s.fileServer != nil {
+		s.fileServer.ServeHTTP(w, r)
+	} else {
+		http.FileServer(http.FS(s.assets)).ServeHTTP(w, r)
+	}
 	return true
 }
 
@@ -66,9 +74,9 @@ func (s *Server) serveIndex(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "index.html", time.Time{}, bytes.NewReader(content))
 }
 
-func shouldFallbackToIndex(path string) bool {
-	if strings.HasPrefix(path, "assets/") {
+func shouldFallbackToIndex(p string) bool {
+	if strings.HasPrefix(p, "assets/") || strings.HasPrefix(p, "api/") || p == "api" {
 		return false
 	}
-	return filepath.Ext(path) == ""
+	return path.Ext(p) == ""
 }
