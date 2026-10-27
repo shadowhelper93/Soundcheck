@@ -190,6 +190,7 @@ func addCommands(cmd *cobra.Command, opts *RootOptions, a *app.App) {
 	cmd.AddCommand(newExecCmd(opts, a))
 	cmd.AddCommand(newServeCmd(opts, a))
 	cmd.AddCommand(newMCPCmd(opts, a))
+	cmd.AddCommand(newUpgradeCmd(opts))
 	cmd.AddCommand(newVersionCmd(opts))
 }
 

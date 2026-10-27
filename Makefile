@@ -1,14 +1,15 @@
 export PATH := /opt/homebrew/bin:/usr/local/bin:/usr/local/go/bin:$(PATH)
+PATH := /opt/homebrew/bin:/usr/local/bin:/usr/local/go/bin:$(PATH)
 
 .PHONY: all build ui-build cross-build check test lint fmt-check ci clean release-check
 
 BIN_DIR := bin
 BINARY := $(BIN_DIR)/soundcheck
 RELEASE_DIR := $(BIN_DIR)/release
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "v2.0.0")
+VERSION ?= $(shell PATH="$(PATH)" git describe --tags --always --dirty 2>/dev/null || echo "v2.0.0")
 
-GOPATH ?= $(shell go env GOPATH)
-GOLANGCI_LINT ?= $(shell which golangci-lint 2>/dev/null || echo $(GOPATH)/bin/golangci-lint)
+GOPATH ?= $(shell PATH="$(PATH)" go env GOPATH 2>/dev/null || echo $(HOME)/go)
+GOLANGCI_LINT ?= $(shell PATH="$(PATH)" which golangci-lint 2>/dev/null || echo $(GOPATH)/bin/golangci-lint)
 
 all: build
 

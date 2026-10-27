@@ -78,3 +78,20 @@ func FuzzClassify(f *testing.F) {
 		}
 	})
 }
+
+func FuzzAnsiStrip(f *testing.F) {
+	f.Add("")
+	f.Add("normal text without escapes")
+	f.Add("\x1b[31mred\x1b[0m")
+	f.Add("\x1b[2J\x1b[H\x1b[1;34mHeader\x1b[0m\nLine 1\nLine 2")
+	f.Add("\x1b]0;Title\x07Body text")
+
+	f.Fuzz(func(t *testing.T, s string) {
+		stripped := classify.StripANSI(s)
+		// Stripping twice must be idempotent
+		doubleStripped := classify.StripANSI(stripped)
+		if stripped != doubleStripped {
+			t.Errorf("StripANSI not idempotent: first=%q, second=%q", stripped, doubleStripped)
+		}
+	})
+}
