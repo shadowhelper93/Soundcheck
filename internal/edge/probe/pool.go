@@ -29,7 +29,11 @@ func (p *Pool) Run(ctx context.Context, tasks []Task) error {
 		return nil
 	}
 
-	sem := make(chan struct{}, p.limit)
+	limit := p.limit
+	if limit <= 0 {
+		limit = runtime.NumCPU()
+	}
+	sem := make(chan struct{}, limit)
 	var wg sync.WaitGroup
 	var once sync.Once
 	var firstErr error

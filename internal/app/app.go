@@ -115,9 +115,21 @@ func (a *App) ProbeOne(ctx context.Context, adapterID string) (domain.Adapter, e
 }
 
 // Resolve evaluates role assignments against current adapter capabilities.
-func (a *App) Resolve(ctx context.Context, _ string) (map[domain.Role]domain.DetailedResolution, error) {
+func (a *App) Resolve(ctx context.Context, roleFilter string) (map[domain.Role]domain.DetailedResolution, error) {
 	probed := a.prober.ProbeAll(ctx, a.defList)
-	return resolve.Roles(a.cfg, probed, time.Now())
+	res, err := resolve.Roles(a.cfg, probed, time.Now())
+	if err != nil {
+		return nil, err
+	}
+	if roleFilter == "" {
+		return res, nil
+	}
+	targetRole := domain.Role(roleFilter)
+	filtered := make(map[domain.Role]domain.DetailedResolution)
+	if val, ok := res[targetRole]; ok {
+		filtered[targetRole] = val
+	}
+	return filtered, nil
 }
 
 // Manifest builds the complete capability manifest.
@@ -159,6 +171,6 @@ func detectGitWorktree(ctx context.Context, runner exec.Runner) bool {
 	if err == nil && res.ExitCode == 0 && strings.TrimSpace(string(res.Stdout)) == "true" {
 		return true
 	}
-	_, statErr := os.Stat(".git")
-	return statErr == nil
+	fi, statErr := os.Stat(".git")
+	return statErr == nil && (fi.IsDir() || fi.Mode().IsRegular())
 }

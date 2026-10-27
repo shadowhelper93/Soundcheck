@@ -347,6 +347,9 @@ func (p *Prober) updateL0Details(ad *domain.Adapter, res domain.ProbeResult) {
 
 // ProbeAll sweeps all adapter definitions concurrently using the bounded worker pool.
 func (p *Prober) ProbeAll(ctx context.Context, defs []adapters.Definition, opts ...ProbeOption) []domain.Adapter {
+	if p.pool == nil {
+		p.pool = NewPool(0)
+	}
 	results := make([]domain.Adapter, len(defs))
 	tasks := make([]Task, len(defs))
 
