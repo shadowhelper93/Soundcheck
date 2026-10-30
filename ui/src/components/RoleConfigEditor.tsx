@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, AlertCircle, FileText, Split, DollarSign, Clock, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, AlertCircle, FileText, Split, DollarSign, Clock, Sparkles } from 'lucide-react';
 
 interface Check {
   role: string;
@@ -21,6 +21,7 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
   const [configPath, setConfigPath] = useState<string>('agent-doctor.yaml');
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
+  const [liveAdapters, setLiveAdapters] = useState<any[]>([]);
 
   const validate = async (c: any) => {
     try {
@@ -49,6 +50,15 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
         validate(c);
       })
       .catch(() => setMsg({ text: 'Cannot load config from server', error: true }));
+
+    fetch('/api/v1/doctor')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.adapters)) {
+          setLiveAdapters(data.adapters);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   if (!cfg) {
@@ -65,12 +75,25 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
     });
   };
 
+  const addCandidateToRole = (role: string, cand: string) => {
+    const existing: string[] = cfg.roles?.[role] || [];
+    if (!existing.includes(cand)) {
+      setCfg({
+        ...cfg,
+        roles: {
+          ...cfg.roles,
+          [role]: [...existing, cand]
+        }
+      });
+    }
+  };
+
   const toggleVendorDistinct = (enabled: boolean) => {
     setCfg({
       ...cfg,
       policy: {
         ...cfg.policy,
-        require_distinct_vendor: enabled ? ['primary', 'reviewer'] : ['primary', 'reviewer'] // must specify at least 2 roles per validator
+        require_distinct_vendor: enabled ? ['primary', 'reviewer'] : ['primary', 'reviewer']
       }
     });
   };
@@ -126,8 +149,31 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
 
   const distinctVendorActive = (cfg.policy?.require_distinct_vendor?.length || 0) >= 2;
 
+  // Compile unique live suggestions across installed adapters
+  const suggestions: { candidate: string; label: string; agent: string }[] = [];
+  liveAdapters.forEach((a) => {
+    if (a.installed && Array.isArray(a.models)) {
+      a.models.forEach((m: any) => {
+        suggestions.push({
+          candidate: `${a.id}:${m.id}`,
+          label: `${a.name}: ${m.displayName || m.id}`,
+          agent: a.id
+        });
+      });
+    }
+  });
+
   return (
     <div className="space-y-4 text-xs font-mono">
+      {/* Hidden Datalist for autocomplete */}
+      <datalist id="model-suggestions-list">
+        {suggestions.map((s, idx) => (
+          <option key={idx} value={s.candidate}>
+            {s.label}
+          </option>
+        ))}
+      </datalist>
+
       {/* File Path and Header */}
       <div className="flex items-center justify-between pb-2 border-b border-[#1E2638] text-[11px] text-[#8B95A7]">
         <div className="flex items-center gap-1.5">
@@ -154,8 +200,32 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
               onChange={(e) => setRole(role, e.target.value)}
               className="w-full bg-[#0A0D12] border border-[#1E2638] focus:border-[#E6EAF2] rounded p-2 text-[#E6EAF2] text-xs font-mono focus:outline-none"
               aria-label={`${role} candidates`}
-              placeholder="e.g. claude:claude-sonnet-5-5"
+              placeholder="e.g. codex:gpt-6-astra"
             />
+
+            {/* Live Model Suggestions Tray */}
+            {suggestions.length > 0 && (
+              <div className="pt-1 border-t border-[#1E2638]/50">
+                <div className="text-[10px] text-[#8B95A7] flex items-center gap-1 mb-1">
+                  <Sparkles className="w-3 h-3 text-[#06B6D4]" />
+                  <span>Click to add live account model:</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {suggestions.slice(0, 8).map((s, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => addCandidateToRole(role, s.candidate)}
+                      className="text-[10px] bg-[#0A0D12] hover:bg-[#1E2638] text-[#8B95A7] hover:text-[#E6EAF2] border border-[#1E2638] hover:border-[#8B95A7] px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                      title={s.label}
+                    >
+                      +{s.candidate}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Live Verification Badges */}
             <div className="space-y-1 pt-1">
               {checks

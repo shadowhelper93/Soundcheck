@@ -25,6 +25,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	if hasArg("debug") && hasArg("models") {
+		fmt.Println(`{"models":[{"slug":"gpt-6-astra","display_name":"GPT-6-Astra"},{"slug":"gpt-5.5","display_name":"GPT-5.5"}]}`)
+		os.Exit(0)
+	}
+
 	if *quirk != "" {
 		handleQuirk(*quirk, *pidFile)
 		return
