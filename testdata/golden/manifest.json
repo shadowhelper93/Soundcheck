@@ -13,6 +13,22 @@
     "quirksProtected": 10
   },
   "agents": {
+    "agy": {
+      "installed": true,
+      "version": "1.2.0 (Go runtime)",
+      "authValid": true,
+      "functional": true,
+      "cooldownActive": false,
+      "errorClass": "ok",
+      "models": [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash"
+      ],
+      "permissions": [
+        "--json-schema",
+        "--approval-mode deny"
+      ]
+    },
     "claude": {
       "installed": true,
       "version": "2.1.302 (October 2026)",
@@ -21,9 +37,10 @@
       "cooldownActive": false,
       "errorClass": "ok",
       "models": [
-        "claude-3-7-sonnet",
-        "claude-3-5-haiku",
-        "claude-opus"
+        "claude-fable-5-1",
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "claude-haiku-5-5"
       ],
       "permissions": [
         "--permission-mode",
@@ -39,58 +56,13 @@
       "cooldownActive": false,
       "errorClass": "ok",
       "models": [
-        "gpt-5-codex",
-        "gpt-5-mini"
+        "gpt-4o",
+        "gpt-4o-mini",
+        "o3-mini"
       ],
       "permissions": [
         "--sandbox read-only",
         "--sandbox workspace-write"
-      ]
-    },
-    "opencode": {
-      "installed": true,
-      "version": "2.4.1",
-      "authValid": true,
-      "functional": true,
-      "cooldownActive": false,
-      "errorClass": "ok",
-      "models": [
-        "anthropic/claude-sonnet",
-        "openai/gpt-5.x-mini"
-      ],
-      "permissions": [
-        "opencode.json permission block",
-        "--auto"
-      ]
-    },
-    "agy": {
-      "installed": true,
-      "version": "1.2.0 (Go runtime)",
-      "authValid": true,
-      "functional": true,
-      "cooldownActive": false,
-      "errorClass": "ok",
-      "models": [
-        "gemini-2.5-flash",
-        "gemini-2.5-pro"
-      ],
-      "permissions": [
-        "--json-schema",
-        "--approval-mode deny"
-      ]
-    },
-    "gemini": {
-      "installed": false,
-      "authValid": false,
-      "functional": false,
-      "cooldownActive": false,
-      "errorClass": "ok",
-      "models": [
-        "gemini-1.5-pro"
-      ],
-      "permissions": [
-        "--approval-mode",
-        "policy engine"
       ]
     },
     "copilot": {
@@ -108,6 +80,21 @@
         "--deny-tool"
       ]
     },
+    "gemini": {
+      "installed": false,
+      "authValid": false,
+      "functional": false,
+      "cooldownActive": false,
+      "errorClass": "ok",
+      "models": [
+        "gemini-2.5-pro",
+        "gemini-2.5-flash"
+      ],
+      "permissions": [
+        "--approval-mode",
+        "policy engine"
+      ]
+    },
     "generic-acp": {
       "installed": true,
       "version": "ACP stdio bridge",
@@ -122,32 +109,47 @@
         "agentCapabilities declaration",
         "read-only"
       ]
+    },
+    "opencode": {
+      "installed": true,
+      "version": "2.4.1",
+      "authValid": true,
+      "functional": true,
+      "cooldownActive": false,
+      "errorClass": "ok",
+      "models": [
+        "anthropic/claude-sonnet-5-5"
+      ],
+      "permissions": [
+        "opencode.json permission block",
+        "--auto"
+      ]
     }
   },
   "resolvedRoles": {
-    "primary": {
-      "agent": "claude",
-      "model": "Claude 3.7 Sonnet",
-      "vendor": "Anthropic",
-      "reason": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints."
-    },
-    "subagent": {
-      "agent": "claude",
-      "model": "Claude 3.7 Sonnet",
-      "vendor": "Anthropic",
-      "reason": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints."
-    },
     "auxiliary": {
       "agent": "claude",
-      "model": "Claude 3.5 Haiku",
+      "model": "Claude Haiku 5.5",
       "vendor": "Anthropic",
-      "reason": "Selected candidate #1 (claude:claude-3-5-haiku). Passed L0 presence, L1 auth, and vendor diversity constraints."
+      "reason": "Selected candidate #1 (claude:claude-haiku-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
+    },
+    "primary": {
+      "agent": "claude",
+      "model": "Claude Sonnet 5.5",
+      "vendor": "Anthropic",
+      "reason": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
     },
     "reviewer": {
       "agent": "codex",
-      "model": "GPT-5.2 Codex",
+      "model": "OpenAI GPT-4o",
       "vendor": "OpenAI",
       "reason": "Selected candidate #1 (codex:*). Passed L0 presence, L1 auth, and vendor diversity constraints."
+    },
+    "subagent": {
+      "agent": "claude",
+      "model": "Claude Sonnet 5.5",
+      "vendor": "Anthropic",
+      "reason": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
     }
   }
 }

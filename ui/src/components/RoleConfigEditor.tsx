@@ -154,7 +154,7 @@ export const RoleConfigEditor: React.FC<RoleConfigEditorProps> = ({ accentColor,
               onChange={(e) => setRole(role, e.target.value)}
               className="w-full bg-[#0A0D12] border border-[#1E2638] focus:border-[#E6EAF2] rounded p-2 text-[#E6EAF2] text-xs font-mono focus:outline-none"
               aria-label={`${role} candidates`}
-              placeholder="e.g. claude:claude-3-5-sonnet"
+              placeholder="e.g. claude:claude-sonnet-5-5"
             />
             {/* Live Verification Badges */}
             <div className="space-y-1 pt-1">

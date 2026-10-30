@@ -10,7 +10,7 @@ func TestSaveFallbackToConfig(t *testing.T) {
 	tmpDir := t.TempDir()
 	cfgPath := filepath.Clean(filepath.Join(tmpDir, "soundcheck.yaml"))
 
-	err := SaveFallbackToConfig(cfgPath, "claude-3-7-sonnet", "opencode")
+	err := SaveFallbackToConfig(cfgPath, "claude-sonnet-5-5", "opencode")
 	if err != nil {
 		t.Fatalf("unexpected error saving config: %v", err)
 	}
@@ -24,5 +24,5 @@ func TestSaveFallbackToConfig(t *testing.T) {
 		t.Fatal("expected non-empty config file")
 	}
 
-	_ = SaveFallbackToConfig(cfgPath, "claude-3-7-sonnet", "opencode")
+	_ = SaveFallbackToConfig(cfgPath, "claude-sonnet-5-5", "opencode")
 }

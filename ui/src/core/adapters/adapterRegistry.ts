@@ -71,43 +71,43 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
-        id: 'claude-3-5-sonnet',
-        displayName: 'Claude 3.5 Sonnet',
+        id: 'claude-fable-5-1',
+        displayName: 'Claude Fable 5.1',
         vendor: 'Anthropic',
         tier: 'frontier',
-        contextWindow: 200000,
-        inputCostPerM: 3.0,
-        outputCostPerM: 15.0,
+        contextWindow: 1000000,
+        inputCostPerM: 10.0,
+        outputCostPerM: 50.0,
         verified: true
       },
       {
-        id: 'claude-3-7-sonnet',
-        displayName: 'Claude 3.7 Sonnet',
+        id: 'claude-opus-5-5',
+        displayName: 'Claude Opus 5.5',
         vendor: 'Anthropic',
         tier: 'frontier',
-        contextWindow: 200000,
-        inputCostPerM: 3.0,
-        outputCostPerM: 15.0,
+        contextWindow: 1000000,
+        inputCostPerM: 4.0,
+        outputCostPerM: 20.0,
         verified: true
       },
       {
-        id: 'claude-3-5-haiku',
-        displayName: 'Claude 3.5 Haiku',
+        id: 'claude-sonnet-5-5',
+        displayName: 'Claude Sonnet 5.5',
+        vendor: 'Anthropic',
+        tier: 'frontier',
+        contextWindow: 1000000,
+        inputCostPerM: 2.0,
+        outputCostPerM: 10.0,
+        verified: true
+      },
+      {
+        id: 'claude-haiku-5-5',
+        displayName: 'Claude Haiku 5.5',
         vendor: 'Anthropic',
         tier: 'fast',
-        contextWindow: 200000,
-        inputCostPerM: 0.8,
-        outputCostPerM: 4.0,
-        verified: true
-      },
-      {
-        id: 'claude-opus',
-        displayName: 'Claude 3 Opus',
-        vendor: 'Anthropic',
-        tier: 'reasoning',
-        contextWindow: 200000,
-        inputCostPerM: 15.0,
-        outputCostPerM: 75.0,
+        contextWindow: 1000000,
+        inputCostPerM: 0.1,
+        outputCostPerM: 0.5,
         verified: true
       }
     ],
@@ -203,23 +203,13 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
-        id: 'anthropic/claude-sonnet',
-        displayName: 'OpenCode Sonnet Gateway',
+        id: 'anthropic/claude-sonnet-5-5',
+        displayName: 'OpenCode Claude Sonnet 5.5',
         vendor: 'Anthropic',
         tier: 'frontier',
-        contextWindow: 200000,
-        inputCostPerM: 3.0,
-        outputCostPerM: 15.0,
-        verified: true
-      },
-      {
-        id: 'openai/gpt-4o-mini',
-        displayName: 'OpenCode GPT-4o Mini',
-        vendor: 'OpenAI',
-        tier: 'fast',
-        contextWindow: 128000,
-        inputCostPerM: 0.3,
-        outputCostPerM: 1.2,
+        contextWindow: 1000000,
+        inputCostPerM: 2.0,
+        outputCostPerM: 10.0,
         verified: true
       }
     ],
@@ -254,23 +244,13 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
-        id: 'gemini-1.5-pro',
-        displayName: 'Gemini 1.5 Pro',
+        id: 'gemini-2.5-pro',
+        displayName: 'Gemini 2.5 Pro',
         vendor: 'Google',
         tier: 'frontier',
-        contextWindow: 2000000,
-        inputCostPerM: 1.25,
-        outputCostPerM: 5.0,
-        verified: true
-      },
-      {
-        id: 'gemini-2.0-flash',
-        displayName: 'Gemini 2.0 Flash',
-        vendor: 'Google',
-        tier: 'fast',
         contextWindow: 1000000,
-        inputCostPerM: 0.10,
-        outputCostPerM: 0.40,
+        inputCostPerM: 1.25,
+        outputCostPerM: 10.0,
         verified: true
       },
       {
@@ -279,18 +259,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         vendor: 'Google',
         tier: 'fast',
         contextWindow: 1000000,
-        inputCostPerM: 0.30,
-        outputCostPerM: 2.50,
-        verified: true
-      },
-      {
-        id: 'gemini-2.5-pro',
-        displayName: 'Gemini 2.5 Pro',
-        vendor: 'Google',
-        tier: 'frontier',
-        contextWindow: 1000000,
-        inputCostPerM: 1.25,
-        outputCostPerM: 10.0,
+        inputCostPerM: 0.3,
+        outputCostPerM: 2.5,
         verified: true
       }
     ],
@@ -325,14 +295,24 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
-        id: 'gemini-1.5-pro',
-        displayName: 'Gemini 1.5 Pro (Legacy)',
+        id: 'gemini-2.5-pro',
+        displayName: 'Gemini 2.5 Pro',
         vendor: 'Google',
-        tier: 'mid',
+        tier: 'frontier',
         contextWindow: 1000000,
-        inputCostPerM: 2.5,
+        inputCostPerM: 1.25,
         outputCostPerM: 10.0,
-        verified: false
+        verified: true
+      },
+      {
+        id: 'gemini-2.5-flash',
+        displayName: 'Gemini 2.5 Flash',
+        vendor: 'Google',
+        tier: 'fast',
+        contextWindow: 1000000,
+        inputCostPerM: 0.3,
+        outputCostPerM: 2.5,
+        verified: true
       }
     ],
     probes: pendingProbes()

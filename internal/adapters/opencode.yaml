@@ -31,13 +31,13 @@ quirks:
     errorClass: corrupted_state
     caughtLie: false
 models:
-  - id: anthropic/claude-sonnet
-    displayName: "OpenCode Sonnet Gateway"
+  - id: anthropic/claude-sonnet-5-5
+    displayName: "OpenCode Claude Sonnet 5.5"
     vendor: Anthropic
     tier: frontier
-    contextWindow: 200000
-    inputCostPerM: 3.0
-    outputCostPerM: 15.0
+    contextWindow: 1000000
+    inputCostPerM: 2.0
+    outputCostPerM: 10.0
     verified: true
 probeSpecs:
   L0:

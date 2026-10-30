@@ -33,13 +33,21 @@ quirks:
     cooldownMinutes: 15
     caughtLie: true
 models:
-  - id: gemini-1.5-pro
-    displayName: "Gemini 1.5 Pro (Legacy API)"
+  - id: gemini-2.5-pro
+    displayName: "Gemini 2.5 Pro"
     vendor: Google
     tier: frontier
-    contextWindow: 2000000
+    contextWindow: 1000000
     inputCostPerM: 1.25
-    outputCostPerM: 5.0
+    outputCostPerM: 10.0
+    verified: true
+  - id: gemini-2.5-flash
+    displayName: "Gemini 2.5 Flash"
+    vendor: Google
+    tier: fast
+    contextWindow: 1000000
+    inputCostPerM: 0.3
+    outputCostPerM: 2.5
     verified: true
 probeSpecs:
   L0:

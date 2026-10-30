@@ -65,37 +65,37 @@ quirks:
     cooldownMinutes: 60
     caughtLie: false
 models:
-  - id: claude-3-5-sonnet
-    displayName: "Claude 3.5 Sonnet"
+  - id: claude-fable-5-1
+    displayName: "Claude Fable 5.1"
     vendor: Anthropic
     tier: frontier
-    contextWindow: 200000
-    inputCostPerM: 3.0
-    outputCostPerM: 15.0
+    contextWindow: 1000000
+    inputCostPerM: 10.0
+    outputCostPerM: 50.0
     verified: true
-  - id: claude-3-7-sonnet
-    displayName: "Claude 3.7 Sonnet (Hybrid Reasoning)"
+  - id: claude-opus-5-5
+    displayName: "Claude Opus 5.5"
     vendor: Anthropic
     tier: frontier
-    contextWindow: 200000
-    inputCostPerM: 3.0
-    outputCostPerM: 15.0
+    contextWindow: 1000000
+    inputCostPerM: 4.0
+    outputCostPerM: 20.0
     verified: true
-  - id: claude-3-5-haiku
-    displayName: "Claude 3.5 Haiku (Fast Tier)"
+  - id: claude-sonnet-5-5
+    displayName: "Claude Sonnet 5.5"
+    vendor: Anthropic
+    tier: frontier
+    contextWindow: 1000000
+    inputCostPerM: 2.0
+    outputCostPerM: 10.0
+    verified: true
+  - id: claude-haiku-5-5
+    displayName: "Claude Haiku 5.5"
     vendor: Anthropic
     tier: fast
-    contextWindow: 200000
-    inputCostPerM: 0.8
-    outputCostPerM: 4.0
-    verified: true
-  - id: claude-opus
-    displayName: "Claude 3 Opus"
-    vendor: Anthropic
-    tier: frontier
-    contextWindow: 200000
-    inputCostPerM: 15.0
-    outputCostPerM: 75.0
+    contextWindow: 1000000
+    inputCostPerM: 0.1
+    outputCostPerM: 0.5
     verified: true
 probeSpecs:
   L0:

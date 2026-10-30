@@ -4,20 +4,20 @@ import "testing"
 
 func TestFindModelFamily(t *testing.T) {
 	// Canonical
-	fam := FindModelFamily("claude-3-7-sonnet")
-	if fam == nil || fam.CanonicalName != "claude-3-7-sonnet" {
-		t.Fatalf("expected to find claude-3-7-sonnet canonical")
+	fam := FindModelFamily("claude-sonnet-5-5")
+	if fam == nil || fam.CanonicalName != "claude-sonnet-5-5" {
+		t.Fatalf("expected to find claude-sonnet-5-5 canonical")
 	}
 
 	// Alias
-	fam = FindModelFamily("sonnet-3.7")
-	if fam == nil || fam.CanonicalName != "claude-3-7-sonnet" {
-		t.Fatalf("expected to resolve alias sonnet-3.7")
+	fam = FindModelFamily("sonnet-5.5")
+	if fam == nil || fam.CanonicalName != "claude-sonnet-5-5" {
+		t.Fatalf("expected to resolve alias sonnet-5.5")
 	}
 
 	// OpenCode specific path
-	fam = FindModelFamily("anthropic/claude-3-7-sonnet")
-	if fam == nil || fam.CanonicalName != "claude-3-7-sonnet" {
+	fam = FindModelFamily("anthropic/claude-sonnet-5-5")
+	if fam == nil || fam.CanonicalName != "claude-sonnet-5-5" {
 		t.Fatalf("expected to resolve opencode provider model string")
 	}
 

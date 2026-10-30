@@ -22,7 +22,7 @@ func newCheckCmd(opts *RootOptions, a *app.App) *cobra.Command {
 			return runCheck(cmd, opts, a, args[0], modelName)
 		},
 	}
-	cmd.Flags().StringVarP(&modelName, "model", "m", "claude-3-7-sonnet", "model to check alternative providers for")
+	cmd.Flags().StringVarP(&modelName, "model", "m", "claude-sonnet-5-5", "model to check alternative providers for")
 	return cmd
 }
 
@@ -46,7 +46,7 @@ func runCheck(cmd *cobra.Command, opts *RootOptions, a *app.App, providerID, mod
 	}
 
 	if modelName == "" {
-		modelName = "claude-3-7-sonnet"
+		modelName = "claude-sonnet-5-5"
 	}
 	alts, err := appInstance.FindAlternativesForModel(ctx, providerID, modelName)
 	if err != nil || len(alts) == 0 {

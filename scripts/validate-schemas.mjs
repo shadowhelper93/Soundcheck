@@ -376,7 +376,7 @@ async function main() {
       level: 'L3',
       status: 'passed',
       errorClass: 'ok',
-      message: 'Models verified: [claude-3-7-sonnet]',
+      message: 'Models verified: [claude-sonnet-5-5]',
       latencyMs: 340
     }
   ];

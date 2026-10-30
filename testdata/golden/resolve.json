@@ -1,65 +1,46 @@
 {
-  "primary": {
-    "role": "primary",
-    "selectedAgentId": "claude",
-    "selectedModel": "Claude 3.7 Sonnet",
-    "fallbackChain": [],
-    "reasoning": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints.",
-    "vendor": "Anthropic",
-    "estimatedCostPerM": 18,
-    "healthy": true,
-    "steps": [
-      {
-        "candidate": "claude:claude-3-7-sonnet",
-        "agentId": "claude",
-        "modelId": "claude-3-7-sonnet",
-        "status": "selected",
-        "details": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints."
-      }
-    ]
-  },
-  "subagent": {
-    "role": "subagent",
-    "selectedAgentId": "claude",
-    "selectedModel": "Claude 3.7 Sonnet",
-    "fallbackChain": [],
-    "reasoning": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints.",
-    "vendor": "Anthropic",
-    "estimatedCostPerM": 18,
-    "healthy": true,
-    "steps": [
-      {
-        "candidate": "claude:claude-3-7-sonnet",
-        "agentId": "claude",
-        "modelId": "claude-3-7-sonnet",
-        "status": "selected",
-        "details": "Selected candidate #1 (claude:claude-3-7-sonnet). Passed L0 presence, L1 auth, and vendor diversity constraints."
-      }
-    ]
-  },
   "auxiliary": {
     "role": "auxiliary",
     "selectedAgentId": "claude",
-    "selectedModel": "Claude 3.5 Haiku",
+    "selectedModel": "Claude Haiku 5.5",
     "fallbackChain": [],
-    "reasoning": "Selected candidate #1 (claude:claude-3-5-haiku). Passed L0 presence, L1 auth, and vendor diversity constraints.",
+    "reasoning": "Selected candidate #1 (claude:claude-haiku-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints.",
     "vendor": "Anthropic",
-    "estimatedCostPerM": 4.8,
+    "estimatedCostPerM": 0.6,
     "healthy": true,
     "steps": [
       {
-        "candidate": "claude:claude-3-5-haiku",
+        "candidate": "claude:claude-haiku-5-5",
         "agentId": "claude",
-        "modelId": "claude-3-5-haiku",
+        "modelId": "claude-haiku-5-5",
         "status": "selected",
-        "details": "Selected candidate #1 (claude:claude-3-5-haiku). Passed L0 presence, L1 auth, and vendor diversity constraints."
+        "details": "Selected candidate #1 (claude:claude-haiku-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
+      }
+    ]
+  },
+  "primary": {
+    "role": "primary",
+    "selectedAgentId": "claude",
+    "selectedModel": "Claude Sonnet 5.5",
+    "fallbackChain": [],
+    "reasoning": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints.",
+    "vendor": "Anthropic",
+    "estimatedCostPerM": 12,
+    "healthy": true,
+    "steps": [
+      {
+        "candidate": "claude:claude-sonnet-5-5",
+        "agentId": "claude",
+        "modelId": "claude-sonnet-5-5",
+        "status": "selected",
+        "details": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
       }
     ]
   },
   "reviewer": {
     "role": "reviewer",
     "selectedAgentId": "codex",
-    "selectedModel": "GPT-5.2 Codex",
+    "selectedModel": "OpenAI GPT-4o",
     "fallbackChain": [],
     "reasoning": "Selected candidate #1 (codex:*). Passed L0 presence, L1 auth, and vendor diversity constraints.",
     "vendor": "OpenAI",
@@ -69,9 +50,28 @@
       {
         "candidate": "codex:*",
         "agentId": "codex",
-        "modelId": "gpt-5-codex",
+        "modelId": "gpt-4o",
         "status": "selected",
         "details": "Selected candidate #1 (codex:*). Passed L0 presence, L1 auth, and vendor diversity constraints."
+      }
+    ]
+  },
+  "subagent": {
+    "role": "subagent",
+    "selectedAgentId": "claude",
+    "selectedModel": "Claude Sonnet 5.5",
+    "fallbackChain": [],
+    "reasoning": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints.",
+    "vendor": "Anthropic",
+    "estimatedCostPerM": 12,
+    "healthy": true,
+    "steps": [
+      {
+        "candidate": "claude:claude-sonnet-5-5",
+        "agentId": "claude",
+        "modelId": "claude-sonnet-5-5",
+        "status": "selected",
+        "details": "Selected candidate #1 (claude:claude-sonnet-5-5). Passed L0 presence, L1 auth, and vendor diversity constraints."
       }
     ]
   }

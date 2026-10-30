@@ -10,23 +10,23 @@ type ModelFamily struct {
 // BuiltinModelCatalog provides built-in equivalence mappings so users don't have to define them.
 var BuiltinModelCatalog = []ModelFamily{
 	{
-		CanonicalName: "claude-3-7-sonnet",
-		Aliases:       []string{"claude-sonnet-3.7", "claude-3.7-sonnet", "sonnet-3.7"},
+		CanonicalName: "claude-sonnet-5-5",
+		Aliases:       []string{"claude-sonnet-5.5", "sonnet-5.5", "sonnet"},
 		ProviderIDs: map[string]string{
-			"claude":     "claude-3-7-sonnet",
-			"opencode":   "anthropic/claude-3-7-sonnet",
-			"openrouter": "anthropic/claude-3.7-sonnet",
-			"bedrock":    "anthropic.claude-3-7-sonnet-v1:0",
+			"claude":     "claude-sonnet-5-5",
+			"opencode":   "anthropic/claude-sonnet-5-5",
+			"openrouter": "anthropic/claude-sonnet-5.5",
+			"bedrock":    "anthropic.claude-sonnet-5-5",
 		},
 	},
 	{
-		CanonicalName: "claude-3-5-sonnet",
-		Aliases:       []string{"claude-sonnet-3.5", "claude-3.5-sonnet", "sonnet-3.5"},
+		CanonicalName: "claude-opus-5-5",
+		Aliases:       []string{"claude-opus-5.5", "opus-5.5", "opus"},
 		ProviderIDs: map[string]string{
-			"claude":     "claude-3-5-sonnet-20241022",
-			"opencode":   "anthropic/claude-3-5-sonnet",
-			"openrouter": "anthropic/claude-3.5-sonnet",
-			"bedrock":    "anthropic.claude-3-5-sonnet-v2:0",
+			"claude":     "claude-opus-5-5",
+			"opencode":   "anthropic/claude-opus-5-5",
+			"openrouter": "anthropic/claude-opus-5.5",
+			"bedrock":    "anthropic.claude-opus-5-5",
 		},
 	},
 	{

@@ -144,7 +144,7 @@ func TestServerConfigReadWrite(t *testing.T) {
 	}
 
 	newCfg := appInstance.Config()
-	newCfg.Roles[domain.RolePrimary] = []string{"claude:claude-3-5-sonnet"}
+	newCfg.Roles[domain.RolePrimary] = []string{"claude:claude-sonnet-5-5"}
 	b, _ := json.Marshal(newCfg)
 	recPut := httptest.NewRecorder()
 	srv.ServeHTTP(recPut, httptest.NewRequest("PUT", "/api/v1/config", bytes.NewReader(b)))
@@ -152,7 +152,7 @@ func TestServerConfigReadWrite(t *testing.T) {
 		t.Fatalf("expected status 200 from config put, got %d: %s", recPut.Code, recPut.Body)
 	}
 	onDisk, err := config.Load(path)
-	if err != nil || onDisk.Roles[domain.RolePrimary][0] != "claude:claude-3-5-sonnet" {
+	if err != nil || onDisk.Roles[domain.RolePrimary][0] != "claude:claude-sonnet-5-5" {
 		t.Fatalf("config not persisted: %v %+v", err, onDisk)
 	}
 
