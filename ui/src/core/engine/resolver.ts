@@ -3,9 +3,9 @@ import { AgentAdapter, AgentRole, RoleResolution, SoundcheckConfig } from '../..
 export const DEFAULT_CONFIG: SoundcheckConfig = {
   version: 1,
   roles: {
-    primary: ['claude:claude-sonnet-5-5', 'codex:gpt-4o', 'opencode:anthropic/claude-sonnet-5-5', 'agy:gemini-2.5-pro'],
+    primary: ['claude:claude-sonnet-5-5', 'codex:*', 'opencode:anthropic/claude-sonnet-5-5', 'agy:gemini-2.5-pro'],
     subagent: ['claude:claude-sonnet-5-5', 'opencode:*', 'agy:gemini-2.5-flash'],
-    auxiliary: ['claude:claude-haiku-5-5', 'agy:gemini-2.5-flash', 'codex:gpt-4o-mini'],
+    auxiliary: ['claude:claude-haiku-5-5', 'agy:gemini-2.5-flash', 'codex:*'],
     reviewer: ['codex:*', 'claude:*']
   },
   policy: {

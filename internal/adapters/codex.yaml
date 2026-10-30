@@ -49,6 +49,7 @@ quirks:
     errorClass: quota_exhausted
     cooldownMinutes: 30
     caughtLie: false
+modelsCommand: "codex debug models"
 models:
   - id: gpt-4o
     displayName: "OpenAI GPT-4o"

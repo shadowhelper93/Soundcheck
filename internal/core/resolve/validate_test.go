@@ -15,7 +15,7 @@ func TestValidateConfig(t *testing.T) {
 	cfg := domain.Config{Roles: map[domain.Role][]string{domain.RolePrimary: {
 		"a:m1", "a:*", "a", "a:nope", "b:x", "c:x", "zzz:x",
 	}}}
-	want := []string{"", "", "", "not in the A catalog", "not logged in", "not installed", "Unknown agent"}
+	want := []string{"", "", "", "not offered by your A account. Available: m1", "not logged in", "not installed", "Unknown agent"}
 	got := ValidateConfig(cfg, []domain.Adapter{ok, noAuth, missing})
 	if len(got) != len(want) {
 		t.Fatalf("got %d checks, want %d", len(got), len(want))

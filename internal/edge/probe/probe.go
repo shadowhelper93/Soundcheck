@@ -320,6 +320,7 @@ func (p *Prober) ProbeAdapter(ctx context.Context, def adapters.Definition, opts
 
 		if tier == domain.TierL0 {
 			p.updateL0Details(&ad, res)
+			p.applyLiveModels(ctx, &ad, def)
 		}
 
 		if res.Status != "passed" {
@@ -500,4 +501,26 @@ func splitCommand(cmd string) []string {
 		tokens = append(tokens, cur.String())
 	}
 	return tokens
+}
+
+// applyLiveModels replaces the static catalog with the account's real models when the CLI can list them.
+// Without discovery the catalog stays but is marked unverified.
+func (p *Prober) applyLiveModels(ctx context.Context, ad *domain.Adapter, def adapters.Definition) {
+	if !ad.Installed {
+		return
+	}
+	binPath, err := platform.LookPath(ad.Binary)
+	if err != nil {
+		return
+	}
+	if live, ok := discoverModels(ctx, p.runner, def, binPath); ok {
+		ad.Models = live
+		return
+	}
+	models := make([]domain.ModelInfo, len(ad.Models))
+	copy(models, ad.Models)
+	for i := range models {
+		models[i].Verified = false
+	}
+	ad.Models = models
 }

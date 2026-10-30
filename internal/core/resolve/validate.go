@@ -2,6 +2,7 @@ package resolve
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/soundcheck/soundcheck/internal/core/domain"
 )
@@ -39,7 +40,7 @@ func checkCandidate(c candidate, byID map[string]domain.Adapter) (bool, string) 
 		return false, fmt.Sprintf("%s CLI is not logged in.", a.Name)
 	}
 	if c.modelSpec != "" && c.modelSpec != "*" && resolveModelByID(a.Models, c.modelSpec) == nil {
-		return false, fmt.Sprintf("Model %q is not in the %s catalog.", c.modelSpec, a.Name)
+		return false, fmt.Sprintf("Model %q is not offered by your %s account. Available: %s.", c.modelSpec, a.Name, modelIDs(a.Models))
 	}
 	return true, ""
 }
@@ -51,4 +52,12 @@ func resolveModelByID(models []domain.ModelInfo, id string) *domain.ModelInfo {
 		}
 	}
 	return nil
+}
+
+func modelIDs(models []domain.ModelInfo) string {
+	ids := make([]string, len(models))
+	for i, m := range models {
+		ids[i] = m.ID
+	}
+	return strings.Join(ids, ", ")
 }

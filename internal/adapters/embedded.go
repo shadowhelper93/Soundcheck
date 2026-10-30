@@ -35,6 +35,8 @@ var defaultOrder = []string{
 type Definition struct {
 	domain.Adapter `yaml:",inline"`
 	ProbeSpecs     map[domain.Tier]domain.Probe `json:"probeSpecs,omitempty" yaml:"probeSpecs,omitempty"`
+	// ModelsCommand lists the models the logged-in account can use (JSON on stdout). Empty = no live discovery.
+	ModelsCommand string `json:"modelsCommand,omitempty" yaml:"modelsCommand,omitempty"`
 }
 
 // ProbeSpec returns the execution specification for a tier probe.
