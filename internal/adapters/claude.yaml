@@ -65,6 +65,14 @@ quirks:
     cooldownMinutes: 60
     caughtLie: false
 models:
+  - id: claude-3-5-sonnet
+    displayName: "Claude 3.5 Sonnet"
+    vendor: Anthropic
+    tier: frontier
+    contextWindow: 200000
+    inputCostPerM: 3.0
+    outputCostPerM: 15.0
+    verified: true
   - id: claude-3-7-sonnet
     displayName: "Claude 3.7 Sonnet (Hybrid Reasoning)"
     vendor: Anthropic

@@ -12,6 +12,15 @@ export function createDefaultProbe(level: 'L0' | 'L1' | 'L2' | 'L3', message = '
   };
 }
 
+export function pendingProbes() {
+  return {
+    L0: createDefaultProbe('L0', 'Pending probe'),
+    L1: createDefaultProbe('L1', 'Pending probe'),
+    L2: createDefaultProbe('L2', 'Pending probe'),
+    L3: createDefaultProbe('L3', 'Pending probe')
+  };
+}
+
 export const INITIAL_ADAPTERS: AgentAdapter[] = [
   {
     id: 'claude',
@@ -20,8 +29,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'claude',
     category: 'platform',
     versionSupported: '>=2.1.280',
-    installed: true,
-    versionDetected: '2.1.302 (October 2026)',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['OAuth subscription', 'ANTHROPIC_API_KEY'],
     headlessCommand: 'claude -p --output-format json',
     permissionModes: ['--permission-mode', '--allowedTools', '--bare'],
@@ -62,6 +71,16 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
+        id: 'claude-3-5-sonnet',
+        displayName: 'Claude 3.5 Sonnet',
+        vendor: 'Anthropic',
+        tier: 'frontier',
+        contextWindow: 200000,
+        inputCostPerM: 3.0,
+        outputCostPerM: 15.0,
+        verified: true
+      },
+      {
         id: 'claude-3-7-sonnet',
         displayName: 'Claude 3.7 Sonnet',
         vendor: 'Anthropic',
@@ -92,44 +111,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 14,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Binary found at /usr/local/bin/claude (v2.1.302)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 120,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'OAuth active: Pro subscription, loggedIn: true'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1420,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Smoke test passed: {"ok": true} returned in 1.42s'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1650,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Model sonnet validated with live turn'
-      }
-    }
+    probes: pendingProbes()
   },
   {
     id: 'codex',
@@ -138,8 +120,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'codex',
     category: 'platform',
     versionSupported: '>=0.9.0',
-    installed: true,
-    versionDetected: '0.9.4',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['OAuth login', 'CODEX_API_KEY', 'OPENAI_API_KEY'],
     headlessCommand: 'codex exec --json --sandbox workspace-write',
     permissionModes: ['--sandbox read-only', '--sandbox workspace-write'],
@@ -170,8 +152,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
-        id: 'gpt-5-codex',
-        displayName: 'GPT-5.2 Codex',
+        id: 'gpt-4o',
+        displayName: 'GPT-4o',
         vendor: 'OpenAI',
         tier: 'frontier',
         contextWindow: 256000,
@@ -180,8 +162,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       },
       {
-        id: 'gpt-5-mini',
-        displayName: 'GPT-5 Mini',
+        id: 'gpt-4o-mini',
+        displayName: 'GPT-4o Mini',
         vendor: 'OpenAI',
         tier: 'fast',
         contextWindow: 128000,
@@ -190,44 +172,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 18,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Binary found at /usr/local/bin/codex (v0.9.4)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 95,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'codex login status verified (exit 0, valid session)'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1890,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Smoke test passed in read-only sandbox mode'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 2100,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'gpt-5-codex verified'
-      }
-    }
+    probes: pendingProbes()
   },
   {
     id: 'opencode',
@@ -236,8 +181,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'opencode',
     category: 'opensource',
     versionSupported: '>=2.0.0',
-    installed: true,
-    versionDetected: '2.4.1',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['opencode auth login', 'provider keys'],
     headlessCommand: 'opencode run --format json --auto',
     permissionModes: ['opencode.json permission block', '--auto'],
@@ -268,8 +213,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       },
       {
-        id: 'openai/gpt-5.x-mini',
-        displayName: 'OpenCode GPT-5 Mini',
+        id: 'openai/gpt-4o-mini',
+        displayName: 'OpenCode GPT-4o Mini',
         vendor: 'OpenAI',
         tier: 'fast',
         contextWindow: 128000,
@@ -278,44 +223,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 12,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Binary found at /usr/bin/opencode (v2.4.1)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 80,
-        status: 'passed',
-        errorClass: 'ok',
-        message: '2 providers active via opencode auth list'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1250,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'NDJSON stream completed with step_finish'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1300,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'First-class opencode models check confirmed'
-      }
-    }
+    probes: pendingProbes()
   },
   {
     id: 'agy',
@@ -324,8 +232,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'agy',
     category: 'platform',
     versionSupported: '>=1.0.0',
-    installed: true,
-    versionDetected: '1.2.0 (Go runtime)',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['Google Cloud OAuth', 'GEMINI_API_KEY'],
     headlessCommand: 'agy -p --output-format json',
     permissionModes: ['--json-schema', '--approval-mode deny'],
@@ -346,13 +254,33 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     ],
     models: [
       {
+        id: 'gemini-1.5-pro',
+        displayName: 'Gemini 1.5 Pro',
+        vendor: 'Google',
+        tier: 'frontier',
+        contextWindow: 2000000,
+        inputCostPerM: 1.25,
+        outputCostPerM: 5.0,
+        verified: true
+      },
+      {
+        id: 'gemini-2.0-flash',
+        displayName: 'Gemini 2.0 Flash',
+        vendor: 'Google',
+        tier: 'fast',
+        contextWindow: 1000000,
+        inputCostPerM: 0.10,
+        outputCostPerM: 0.40,
+        verified: true
+      },
+      {
         id: 'gemini-2.5-flash',
         displayName: 'Gemini 2.5 Flash',
         vendor: 'Google',
         tier: 'fast',
         contextWindow: 1000000,
-        inputCostPerM: 0.15,
-        outputCostPerM: 0.60,
+        inputCostPerM: 0.30,
+        outputCostPerM: 2.50,
         verified: true
       },
       {
@@ -360,50 +288,13 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         displayName: 'Gemini 2.5 Pro',
         vendor: 'Google',
         tier: 'frontier',
-        contextWindow: 2000000,
+        contextWindow: 1000000,
         inputCostPerM: 1.25,
-        outputCostPerM: 5.0,
+        outputCostPerM: 10.0,
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 8,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Binary found at /usr/local/bin/agy (Go static binary v1.2.0)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 140,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Live probe check returned status: SUCCESS'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 980,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Micro-turn validated in 980ms'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1100,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'gemini-2.5-flash verified'
-      }
-    }
+    probes: pendingProbes()
   },
   {
     id: 'gemini',
@@ -444,20 +335,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: false
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: 0,
-        cachedUntil: 0,
-        latencyMs: 0,
-        status: 'warning',
-        errorClass: 'not_installed',
-        message: 'Not in PATH (Migrated to Antigravity CLI June 18, 2026)'
-      },
-      L1: createDefaultProbe('L1', 'Skipped: CLI not installed'),
-      L2: createDefaultProbe('L2', 'Skipped'),
-      L3: createDefaultProbe('L3', 'Skipped')
-    }
+    probes: pendingProbes()
   },
   {
     id: 'copilot',
@@ -466,8 +344,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'copilot',
     category: 'platform',
     versionSupported: '>=1.1.0',
-    installed: true,
-    versionDetected: '1.3.4',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['gh auth login', 'GITHUB_TOKEN'],
     headlessCommand: 'copilot -p --output-format json -s',
     permissionModes: ['--allow-tool', '--deny-tool'],
@@ -498,44 +376,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 15,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Binary found at /usr/bin/copilot (v1.3.4)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 110,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'GitHub OAuth token authenticated'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1520,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Headless turn passed'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 1600,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Default model verified'
-      }
-    }
+    probes: pendingProbes()
   },
   {
     id: 'generic-acp',
@@ -544,8 +385,8 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
     binary: 'acp-runner',
     category: 'protocol',
     versionSupported: 'ACP 2026.1 (42 agents)',
-    installed: true,
-    versionDetected: 'ACP stdio bridge',
+    installed: false,
+    versionDetected: '',
     authMethodSupported: ['ACP initialize handshake', 'authMethods negotiation'],
     headlessCommand: 'acp-client --agent <name> --stdio',
     permissionModes: ['agentCapabilities declaration', 'read-only'],
@@ -576,44 +417,7 @@ export const INITIAL_ADAPTERS: AgentAdapter[] = [
         verified: true
       }
     ],
-    probes: {
-      L0: {
-        level: 'L0',
-        timestamp: Date.now() - 3600000,
-        cachedUntil: Date.now() + 82800000,
-        latencyMs: 5,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'ACP stdio bridge ready (42 registry agents)'
-      },
-      L1: {
-        level: 'L1',
-        timestamp: Date.now() - 1800000,
-        cachedUntil: Date.now() + 1800000,
-        latencyMs: 45,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'Capabilities & authMethods received via initialize'
-      },
-      L2: {
-        level: 'L2',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 780,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'JSON-RPC response validated'
-      },
-      L3: {
-        level: 'L3',
-        timestamp: Date.now() - 600000,
-        cachedUntil: Date.now() + 1200000,
-        latencyMs: 820,
-        status: 'passed',
-        errorClass: 'ok',
-        message: 'ACP capability declared'
-      }
-    }
+    probes: pendingProbes()
   }
 ];
 

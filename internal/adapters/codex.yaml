@@ -50,21 +50,29 @@ quirks:
     cooldownMinutes: 30
     caughtLie: false
 models:
-  - id: gpt-5-codex
-    displayName: "OpenAI GPT-5 Codex"
+  - id: gpt-4o
+    displayName: "OpenAI GPT-4o"
     vendor: OpenAI
     tier: frontier
     contextWindow: 128000
     inputCostPerM: 2.5
     outputCostPerM: 10.0
     verified: true
-  - id: gpt-5-mini
-    displayName: "OpenAI GPT-5 Mini"
+  - id: gpt-4o-mini
+    displayName: "OpenAI GPT-4o Mini"
     vendor: OpenAI
     tier: fast
     contextWindow: 128000
     inputCostPerM: 0.15
     outputCostPerM: 0.6
+    verified: true
+  - id: o3-mini
+    displayName: "OpenAI o3-mini (Reasoning)"
+    vendor: OpenAI
+    tier: reasoning
+    contextWindow: 200000
+    inputCostPerM: 1.1
+    outputCostPerM: 4.4
     verified: true
 probeSpecs:
   L0:

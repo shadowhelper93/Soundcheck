@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/soundcheck/soundcheck/internal/app"
 	"github.com/soundcheck/soundcheck/internal/core/domain"
+	"github.com/soundcheck/soundcheck/internal/edge/config"
 	transphttp "github.com/soundcheck/soundcheck/internal/transport/http"
 )
 
@@ -131,37 +133,33 @@ func TestServerResolveAndManifest(t *testing.T) {
 }
 
 func TestServerConfigReadWrite(t *testing.T) {
-	srv, _ := newTestServer(t)
+	srv, appInstance := newTestServer(t)
+	path := filepath.Join(t.TempDir(), "agent-doctor.yaml")
+	app.WithConfigPath(path)(appInstance)
 
-	// GET /api/v1/config
-	reqGet := httptest.NewRequest("GET", "/api/v1/config", nil)
 	recGet := httptest.NewRecorder()
-	srv.ServeHTTP(recGet, reqGet)
+	srv.ServeHTTP(recGet, httptest.NewRequest("GET", "/api/v1/config", nil))
 	if recGet.Code != http.StatusOK {
 		t.Fatalf("expected status 200 from config get, got %d", recGet.Code)
 	}
 
-	// PUT /api/v1/config
-	newCfg := domain.Config{
-		Version: 1,
-		Roles: map[domain.Role][]string{
-			domain.RolePrimary: {"test-cli"},
-		},
-	}
+	newCfg := appInstance.Config()
+	newCfg.Roles[domain.RolePrimary] = []string{"claude:claude-3-5-sonnet"}
 	b, _ := json.Marshal(newCfg)
-	reqPut := httptest.NewRequest("PUT", "/api/v1/config", bytes.NewReader(b))
 	recPut := httptest.NewRecorder()
-	srv.ServeHTTP(recPut, reqPut)
+	srv.ServeHTTP(recPut, httptest.NewRequest("PUT", "/api/v1/config", bytes.NewReader(b)))
 	if recPut.Code != http.StatusOK {
-		t.Fatalf("expected status 200 from config put, got %d", recPut.Code)
+		t.Fatalf("expected status 200 from config put, got %d: %s", recPut.Code, recPut.Body)
+	}
+	onDisk, err := config.Load(path)
+	if err != nil || onDisk.Roles[domain.RolePrimary][0] != "claude:claude-3-5-sonnet" {
+		t.Fatalf("config not persisted: %v %+v", err, onDisk)
 	}
 
-	var saved domain.Config
-	if err := json.Unmarshal(recPut.Body.Bytes(), &saved); err != nil {
-		t.Fatalf("failed to decode updated config: %v", err)
-	}
-	if len(saved.Roles[domain.RolePrimary]) != 1 || saved.Roles[domain.RolePrimary][0] != "test-cli" {
-		t.Errorf("unexpected updated config: %+v", saved)
+	bad := httptest.NewRecorder()
+	srv.ServeHTTP(bad, httptest.NewRequest("PUT", "/api/v1/config", bytes.NewReader([]byte(`{"version":99}`))))
+	if bad.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid config, got %d", bad.Code)
 	}
 }
 
@@ -216,47 +214,62 @@ func TestServerOriginSecurity(t *testing.T) {
 
 func TestServerBearerAuth(t *testing.T) {
 	srv, _ := newTestServer(t, transphttp.WithAuthToken("secret-token-123"))
+	testHeaderAuth(t, srv)
+	testCookieAuth(t, srv)
+}
 
-	// Missing token -> 401
+func testHeaderAuth(t *testing.T, srv *transphttp.Server) {
+	t.Helper()
 	reqNoAuth := httptest.NewRequest("GET", "/api/v1/manifest", nil)
 	recNoAuth := httptest.NewRecorder()
 	srv.ServeHTTP(recNoAuth, reqNoAuth)
 	if recNoAuth.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401 without auth token, got %d", recNoAuth.Code)
+		t.Errorf("expected 401, got %d", recNoAuth.Code)
 	}
 
-	// Wrong token -> 401
-	reqWrongAuth := httptest.NewRequest("GET", "/api/v1/manifest", nil)
-	reqWrongAuth.Header.Set("Authorization", "Bearer wrong-token")
-	recWrongAuth := httptest.NewRecorder()
-	srv.ServeHTTP(recWrongAuth, reqWrongAuth)
-	if recWrongAuth.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401 with wrong token, got %d", recWrongAuth.Code)
+	reqWrong := httptest.NewRequest("GET", "/api/v1/manifest", nil)
+	reqWrong.Header.Set("Authorization", "Bearer wrong-token")
+	recWrong := httptest.NewRecorder()
+	srv.ServeHTTP(recWrong, reqWrong)
+	if recWrong.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401, got %d", recWrong.Code)
 	}
 
-	// Valid token -> 200
-	reqValidAuth := httptest.NewRequest("GET", "/api/v1/manifest", nil)
-	reqValidAuth.Header.Set("Authorization", "Bearer secret-token-123")
-	recValidAuth := httptest.NewRecorder()
-	srv.ServeHTTP(recValidAuth, reqValidAuth)
-	if recValidAuth.Code != http.StatusOK {
-		t.Errorf("expected status 200 with valid token, got %d", recValidAuth.Code)
+	req := httptest.NewRequest("GET", "/api/v1/manifest", nil)
+	req.Header.Set("Authorization", "Bearer secret-token-123")
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func testCookieAuth(t *testing.T, srv *transphttp.Server) {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/api/v1/manifest?token=secret-token-123", nil)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
 	}
 
-	// Browser WebSocket query token -> 200
-	reqQueryAuth := httptest.NewRequest("GET", "/api/v1/manifest?token=secret-token-123", nil)
-	recQueryAuth := httptest.NewRecorder()
-	srv.ServeHTTP(recQueryAuth, reqQueryAuth)
-	if recQueryAuth.Code != http.StatusOK {
-		t.Errorf("expected status 200 with valid query auth token, got %d", recQueryAuth.Code)
+	var authCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "soundcheck_token" {
+			authCookie = c
+			break
+		}
+	}
+	if authCookie == nil || authCookie.Value != "secret-token-123" {
+		t.Fatalf("expected soundcheck_token cookie, got %v", authCookie)
 	}
 
-	// Wrong query token -> 401
-	reqWrongQuery := httptest.NewRequest("GET", "/api/v1/manifest?token=bad-token", nil)
-	recWrongQuery := httptest.NewRecorder()
-	srv.ServeHTTP(recWrongQuery, reqWrongQuery)
-	if recWrongQuery.Code != http.StatusUnauthorized {
-		t.Errorf("expected status 401 with wrong query auth token, got %d", recWrongQuery.Code)
+	reqCookie := httptest.NewRequest("GET", "/api/v1/adapters", nil)
+	reqCookie.AddCookie(authCookie)
+	recCookie := httptest.NewRecorder()
+	srv.ServeHTTP(recCookie, reqCookie)
+	if recCookie.Code != http.StatusOK {
+		t.Errorf("expected 200 with cookie auth, got %d", recCookie.Code)
 	}
 }
 

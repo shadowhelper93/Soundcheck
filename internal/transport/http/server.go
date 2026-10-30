@@ -112,6 +112,7 @@ func (s *Server) checkOrigin(w http.ResponseWriter, r *http.Request) bool {
 	}
 	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Access-Control-Expose-Headers", "X-Config-Path")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
@@ -151,6 +152,16 @@ func (s *Server) checkAuth(w http.ResponseWriter, r *http.Request) bool {
 	}
 	token := extractToken(r)
 	if token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.authToken)) == 1 {
+		// Set cookie on valid token query parameter so browser sessions seamlessly persist auth
+		if r.URL.Query().Get("token") != "" {
+			http.SetCookie(w, &http.Cookie{ //nolint:gosec // localhost/internal dev dashboard over http
+				Name:     "soundcheck_token",
+				Value:    token,
+				Path:     "/",
+				HttpOnly: true,
+				SameSite: http.SameSiteLaxMode,
+			})
+		}
 		return true
 	}
 	http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -161,6 +172,9 @@ func extractToken(r *http.Request) string {
 	auth := r.Header.Get("Authorization")
 	if strings.HasPrefix(auth, "Bearer ") {
 		return strings.TrimPrefix(auth, "Bearer ")
+	}
+	if cookie, err := r.Cookie("soundcheck_token"); err == nil && cookie.Value != "" {
+		return cookie.Value
 	}
 	return r.URL.Query().Get("token")
 }

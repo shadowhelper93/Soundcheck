@@ -30,12 +30,56 @@ type RunPromptResult struct {
 	DurationMs       int64              `json:"durationMs"`
 }
 
-func (a *App) getPromptCandidates(ctx context.Context, target string) []string {
+func (a *App) getPromptCandidates(ctx context.Context, target string) ([]string, error) {
 	if target != "" {
-		if _, ok := a.defs[target]; ok {
-			return []string{target}
+		return a.getTargetCandidates(ctx, target)
+	}
+	return a.getDefaultCandidates(ctx), nil
+}
+
+func (a *App) getTargetCandidates(ctx context.Context, target string) ([]string, error) {
+	if _, ok := a.defs[target]; ok {
+		return []string{target}, nil
+	}
+	cfg := a.Config()
+	targetRole := domain.Role(target)
+	candidateSpecs, isRole := cfg.Roles[targetRole]
+	if !isRole {
+		switch targetRole {
+		case domain.RolePrimary, domain.RoleSubagent, domain.RoleAuxiliary, domain.RoleReviewer:
+			isRole = true
 		}
 	}
+	if !isRole {
+		return nil, fmt.Errorf("unknown adapter or role: %s", target)
+	}
+	return a.resolveRoleCandidates(ctx, targetRole, candidateSpecs)
+}
+
+func (a *App) resolveRoleCandidates(ctx context.Context, role domain.Role, specs []string) ([]string, error) {
+	var candidates []string
+	seen := make(map[string]bool)
+	resolutions, err := a.Resolve(ctx, string(role))
+	if err == nil {
+		if res, ok := resolutions[role]; ok && res.SelectedAgentID != "" && res.SelectedAgentID != "none" {
+			seen[res.SelectedAgentID] = true
+			candidates = append(candidates, res.SelectedAgentID)
+		}
+	}
+	for _, spec := range specs {
+		agentID := strings.Split(spec, ":")[0]
+		if agentID != "" && agentID != "none" && !seen[agentID] {
+			seen[agentID] = true
+			candidates = append(candidates, agentID)
+		}
+	}
+	if len(candidates) == 0 {
+		return nil, fmt.Errorf("no candidates configured for role: %s", role)
+	}
+	return candidates, nil
+}
+
+func (a *App) getDefaultCandidates(ctx context.Context) []string {
 	cfg := a.Config()
 	candidates := make([]string, 0, 8)
 	seen := make(map[string]bool)
@@ -45,7 +89,7 @@ func (a *App) getPromptCandidates(ctx context.Context, target string) []string {
 			candidates = append(candidates, id)
 		}
 	}
-	resolutions, _ := a.Resolve(ctx, target)
+	resolutions, _ := a.Resolve(ctx, "")
 	for _, r := range []domain.Role{domain.RolePrimary, domain.RoleReviewer} {
 		if res, ok := resolutions[r]; ok {
 			addCandidate(res.SelectedAgentID)
@@ -70,7 +114,10 @@ func (a *App) RunPrompt(ctx context.Context, prompt string, target ...string) (*
 	if len(target) > 0 {
 		tgt = target[0]
 	}
-	candidates := a.getPromptCandidates(ctx, tgt)
+	candidates, err := a.getPromptCandidates(ctx, tgt)
+	if err != nil {
+		return nil, err
+	}
 	attempts, agent, out, ok := a.tryCandidates(ctx, candidates, prompt)
 
 	return &RunPromptResult{
@@ -114,13 +161,25 @@ func (a *App) buildAgentCmd(agentID string, prompt string) (exec.Cmd, error) {
 	if cmdStr == "" {
 		cmdStr = def.Binary + " -p"
 	}
-	tokens := strings.Fields(cmdStr)
-	if len(tokens) == 0 {
-		tokens = []string{def.Binary, "-p"}
+	bin := def.Binary
+	var args []string
+	switch {
+	case bin != "" && cmdStr == bin:
+		args = []string{prompt}
+	case bin != "" && strings.HasPrefix(cmdStr, bin+" "):
+		rest := strings.TrimSpace(strings.TrimPrefix(cmdStr, bin))
+		args = append(strings.Fields(rest), prompt)
+	default:
+		tokens := strings.Fields(cmdStr)
+		if len(tokens) == 0 {
+			tokens = []string{def.Binary, "-p"}
+		}
+		bin = tokens[0]
+		args = append(tokens[1:], prompt) //nolint:gocritic // distinct destination slice intended
 	}
 	return exec.Cmd{
-		Binary:  tokens[0],
-		Args:    append(tokens[1:], prompt),
+		Binary:  bin,
+		Args:    args,
 		Timeout: 60 * time.Second,
 	}, nil
 }

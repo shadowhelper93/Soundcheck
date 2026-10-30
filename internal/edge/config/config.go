@@ -153,3 +153,31 @@ func toDomain(raw rawConfig) domain.Config {
 		},
 	}
 }
+
+// Save validates cfg, then atomically writes it as YAML to path (temp file + rename, mode 0600).
+func Save(path string, cfg domain.Config) error {
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("encode config: %w", err)
+	}
+	if _, err := Parse(data); err != nil {
+		return err
+	}
+	path = filepath.Clean(path)
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".soundcheck-config-*")
+	if err != nil {
+		return fmt.Errorf("create temp config: %w", err)
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }()
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return fmt.Errorf("write temp config: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("close temp config: %w", err)
+	}
+	if err := os.Chmod(tmp.Name(), 0o600); err != nil {
+		return fmt.Errorf("chmod temp config: %w", err)
+	}
+	return os.Rename(tmp.Name(), path)
+}

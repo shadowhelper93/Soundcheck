@@ -58,13 +58,13 @@ else
   exit 1
 fi
 
-# 6. Verify checksum if checksums.txt exists
+# 6. Verify checksum (required for release archives)
 if [ -f "$TMPDIR/checksums.txt" ] && [ -s "$TMPDIR/checksums.txt" ]; then
   cd "$TMPDIR"
   if command -v sha256sum >/dev/null 2>&1; then
-    grep "$TARBALL" checksums.txt | sha256sum -c - || echo "Notice: Checksum verification bypassed"
+    grep "$TARBALL" checksums.txt | sha256sum -c - || { echo "Error: Checksum verification failed!" >&2; exit 1; }
   elif command -v shasum >/dev/null 2>&1; then
-    grep "$TARBALL" checksums.txt | shasum -a 256 -c - || echo "Notice: Checksum verification bypassed"
+    grep "$TARBALL" checksums.txt | shasum -a 256 -c - || { echo "Error: Checksum verification failed!" >&2; exit 1; }
   fi
   cd - >/dev/null
 fi

@@ -43,4 +43,4 @@ Official Visual Studio Code & Antigravity IDE extension for **Soundcheck**: dete
 |---|---|---|
 | `soundcheck.binaryPath` | `""` | Path to custom `soundcheck` binary. Falls back to workspace `bin/soundcheck` or `$PATH`. |
 | `soundcheck.autoDoctorOnStartup` | `true` | Automatically run doctor preflight on startup. |
-| `soundcheck.serverPort` | `8080` | Local port for the web dashboard. |
+| `soundcheck.serverPort` | `3000` | Local port for the web dashboard. |

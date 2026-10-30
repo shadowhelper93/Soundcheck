@@ -3,9 +3,9 @@ import { AgentAdapter, AgentRole, RoleResolution, SoundcheckConfig } from '../..
 export const DEFAULT_CONFIG: SoundcheckConfig = {
   version: 1,
   roles: {
-    primary: ['claude:claude-3-7-sonnet', 'codex:gpt-5-codex', 'opencode:anthropic/claude-sonnet', 'agy:gemini-2.5-pro'],
+    primary: ['claude:claude-3-7-sonnet', 'codex:gpt-4o', 'opencode:anthropic/claude-sonnet', 'agy:gemini-2.5-pro'],
     subagent: ['claude:claude-3-7-sonnet', 'opencode:*', 'agy:gemini-2.5-flash'],
-    auxiliary: ['claude:claude-3-5-haiku', 'agy:gemini-2.5-flash', 'codex:gpt-5-mini'],
+    auxiliary: ['claude:claude-3-5-haiku', 'agy:gemini-2.5-flash', 'codex:gpt-4o-mini'],
     reviewer: ['codex:*', 'claude:*']
   },
   policy: {
@@ -32,8 +32,7 @@ export interface DetailedResolution extends RoleResolution {
 
 export function resolveRoles(
   config: SoundcheckConfig,
-  adapters: AgentAdapter[],
-  overrides?: { forceCooldownAgentId?: string }
+  adapters: AgentAdapter[]
 ): Record<AgentRole, DetailedResolution> {
   const adapterMap = new Map<string, AgentAdapter>();
   adapters.forEach((a) => adapterMap.set(a.id, a));
@@ -64,13 +63,11 @@ export function resolveRoles(
         continue;
       }
 
-      // Check simulated or live cooldown
-      const isInCooldown =
-        (adapter.cooldownUntil && adapter.cooldownUntil > Date.now()) ||
-        overrides?.forceCooldownAgentId === adapter.id;
+      // Check cooldown
+      const isInCooldown = Boolean(adapter.cooldownUntil && adapter.cooldownUntil > Date.now());
 
       if (isInCooldown) {
-        const remainingMinutes = adapter.cooldownUntil ? Math.max(1, Math.ceil((adapter.cooldownUntil - Date.now()) / 60000)) : 35;
+        const remainingMinutes = adapter.cooldownUntil ? Math.max(1, Math.ceil((adapter.cooldownUntil - Date.now()) / 60000)) : 15;
         steps.push({
           candidate: cand,
           agentId,

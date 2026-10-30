@@ -33,21 +33,37 @@ quirks:
     errorClass: unauthenticated
     caughtLie: false
 models:
-  - id: gemini-2.5-flash
-    displayName: "Gemini 2.5 Flash"
-    vendor: Google
-    tier: fast
-    contextWindow: 1000000
-    inputCostPerM: 0.15
-    outputCostPerM: 0.6
-    verified: true
-  - id: gemini-2.5-pro
-    displayName: "Gemini 2.5 Pro"
+  - id: gemini-1.5-pro
+    displayName: "Gemini 1.5 Pro"
     vendor: Google
     tier: frontier
     contextWindow: 2000000
     inputCostPerM: 1.25
     outputCostPerM: 5.0
+    verified: true
+  - id: gemini-2.0-flash
+    displayName: "Gemini 2.0 Flash"
+    vendor: Google
+    tier: fast
+    contextWindow: 1000000
+    inputCostPerM: 0.10
+    outputCostPerM: 0.40
+    verified: true
+  - id: gemini-2.5-flash
+    displayName: "Gemini 2.5 Flash"
+    vendor: Google
+    tier: fast
+    contextWindow: 1000000
+    inputCostPerM: 0.30
+    outputCostPerM: 2.50
+    verified: true
+  - id: gemini-2.5-pro
+    displayName: "Gemini 2.5 Pro"
+    vendor: Google
+    tier: frontier
+    contextWindow: 1000000
+    inputCostPerM: 1.25
+    outputCostPerM: 10.0
     verified: true
 probeSpecs:
   L0:

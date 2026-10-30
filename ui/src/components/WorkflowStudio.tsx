@@ -68,39 +68,23 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({ resolvedRoles, a
       addLog(`  Permissions: ${stage.permissions} | Worktree: ${stage.worktree ? 'Isolated git worktree' : 'Root'}`);
 
       try {
-        let stageData: any;
-        try {
-          // Execute stage against backend if available
-          const res = await fetch('/api/workflow/execute-stage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              stageId: stage.id,
-              role: stage.role,
-              permissions: stage.permissions,
-              gate: stage.gate,
-              taskPrompt
-            })
-          });
-          if (res.ok) {
-            stageData = await res.json();
-          } else {
-            throw new Error(`HTTP ${res.status}`);
-          }
-        } catch {
-          // Client-side simulated workflow execution
-          await new Promise((r) => setTimeout(r, 350));
-          stageData = {
-            artifact: stage.id === 'plan' ? 'plan.md' : stage.id === 'implement' ? 'git.patch' : undefined,
-            artifactContent:
-              stage.id === 'plan'
-                ? `# Implementation Plan: ${taskPrompt}\n\n## 1. Specification\n- Pure deterministic core\n- Zero token overhead\n\n## 2. Verification Gates\n- diff_nonempty: true\n- make check: passed\n`
-                : stage.id === 'implement'
-                ? `diff --git a/internal/core/classify/classifier.go b/internal/core/classify/classifier.go\nindex 82e1d09..b49f10a 100644\n--- a/internal/core/classify/classifier.go\n+++ b/internal/core/classify/classifier.go\n@@ -14,6 +14,8 @@ func Classify(raw domain.RawOutput) domain.Classification {\n+ // Deterministic regex rule match\n`
-                : undefined,
-            durationMs: 145
-          };
+        const res = await fetch('/api/workflow/execute-stage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stageId: stage.id,
+            role: stage.role,
+            permissions: stage.permissions,
+            gate: stage.gate,
+            taskPrompt
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`Endpoint unavailable or failed (HTTP ${res.status}). Real stage execution is not implemented.`);
         }
+
+        const stageData = await res.json();
 
         if (stageData.artifact === 'plan.md' && stageData.artifactContent) {
           setArtifacts((prev) => ({ ...prev, plan: stageData.artifactContent }));
@@ -117,11 +101,19 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({ resolvedRoles, a
           addLog(`\n  [DETERMINISTIC VERIFICATION GATES]`);
           if (stage.gate.diff_nonempty) {
             addLog(`  Checking gate: diff_nonempty == true...`);
-            addLog(`  ✓ PASS: git status shows modified files in isolated worktree.`);
+            if (stageData.gateResults?.diff_nonempty) {
+              addLog(`  ✓ PASS: git status shows modified files in isolated worktree.`);
+            } else {
+              throw new Error(`Gate failed: diff_nonempty check failed.`);
+            }
           }
           if (stage.gate.tests) {
             addLog(`  Executing gate test: "${stage.gate.tests}"...`);
-            addLog(`  ✓ PASS: test command verified with exit code 0.`);
+            if (stageData.gateResults?.tests) {
+              addLog(`  ✓ PASS: test command verified with exit code 0.`);
+            } else {
+              throw new Error(`Gate failed: test "${stage.gate.tests}" failed.`);
+            }
           }
         }
 
@@ -130,12 +122,16 @@ export const WorkflowStudio: React.FC<WorkflowStudioProps> = ({ resolvedRoles, a
       } catch (err: any) {
         setStageStates((prev) => ({ ...prev, [stage.id]: 'failed' }));
         addLog(`  ✖ Stage "${stage.id}" failed: ${err.message}`);
-        break;
+        addLog(`\n═════════════════════════════════════════════════════════════`);
+        addLog(`✖ WORKFLOW EXECUTION HALTED: Stage failure encountered.`);
+        setIsRunning(false);
+        setActiveStageIndex(-1);
+        return;
       }
     }
 
     addLog(`\n═════════════════════════════════════════════════════════════`);
-    addLog(`✔ SOUNDCHECK WORKFLOW COMPLETED: All deterministic gates green.`);
+    addLog(`✔ SOUNDCHECK WORKFLOW COMPLETED: All stages executed successfully.`);
     setIsRunning(false);
     setActiveStageIndex(-1);
   };

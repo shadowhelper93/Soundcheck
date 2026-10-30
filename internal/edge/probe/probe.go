@@ -420,16 +420,37 @@ func tierIndex(tier domain.Tier) int {
 }
 
 func buildCmd(bin, cmdStr string, fallbackArgs []string, timeout time.Duration) exec.Cmd {
-	tokens := splitCommand(cmdStr)
-	args := fallbackArgs
 	targetBin := bin
-	if len(tokens) > 0 {
-		if lp, err := platform.LookPath(tokens[0]); err == nil {
-			targetBin = lp
+	var args []string
+
+	switch {
+	case bin != "" && cmdStr == bin:
+		targetBin = bin
+		args = fallbackArgs
+	case bin != "" && strings.HasPrefix(cmdStr, bin+" "):
+		targetBin = bin
+		rest := strings.TrimSpace(strings.TrimPrefix(cmdStr, bin))
+		parsed := splitCommand(rest)
+		if len(parsed) > 0 {
+			args = parsed
 		} else {
-			targetBin = tokens[0]
+			args = fallbackArgs
 		}
-		args = tokens[1:]
+	default:
+		tokens := splitCommand(cmdStr)
+		args = fallbackArgs
+		if len(tokens) > 0 {
+			if lp, err := platform.LookPath(tokens[0]); err == nil {
+				targetBin = lp
+			} else if bin != "" {
+				targetBin = bin
+			} else {
+				targetBin = tokens[0]
+			}
+			if len(tokens) > 1 {
+				args = tokens[1:]
+			}
+		}
 	}
 	return exec.Cmd{
 		Binary:  targetBin,

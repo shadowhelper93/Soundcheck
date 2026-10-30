@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Header, ActiveTab } from './components/Header';
+import { Sidebar, ActiveTab } from './components/Sidebar';
 import { DoctorView } from './components/DoctorView';
 import { ResolverView } from './components/ResolverView';
 import { WorkflowStudio } from './components/WorkflowStudio';
 import { QuirkLabView } from './components/QuirkLabView';
 import { ManifestModal } from './components/ManifestModal';
-import { BrandSystemView } from './components/BrandSystemView';
+import { SettingsView } from './components/SettingsView';
 import { InteractiveTerminal } from './components/InteractiveTerminal';
 import { INITIAL_ADAPTERS } from './core/adapters/adapterRegistry';
 import { DEFAULT_CONFIG, resolveRoles } from './core/engine/resolver';
@@ -15,20 +15,37 @@ import { Terminal, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('doctor');
-  const [accentColor, setAccentColor] = useState<string>('#10B981'); // Emerald accent from Marks.dc.html
+  const [accentColor, setAccentColor] = useState<string>(() => localStorage.getItem('soundcheck_accent') || '#10B981');
+  const [appFont, setAppFont] = useState<string>(() => localStorage.getItem('soundcheck_app_font') || "'Fira Code', monospace");
+  const [terminalFont, setTerminalFont] = useState<string>(() => localStorage.getItem('soundcheck_term_font') || "'Fira Code', monospace");
+  const [terminalFontSize, setTerminalFontSize] = useState<number>(() => {
+    const saved = localStorage.getItem('soundcheck_term_size');
+    return saved ? parseInt(saved, 10) : 13;
+  });
+
   const [adapters, setAdapters] = useState<AgentAdapter[]>(INITIAL_ADAPTERS);
   const [config, setConfig] = useState<SoundcheckConfig>(DEFAULT_CONFIG);
-  const [probingMode, setProbingMode] = useState<'hybrid' | 'live' | 'fixture'>('hybrid');
   const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [isPrimarySimulatedLimited, setIsPrimarySimulatedLimited] = useState<boolean>(false);
   const [showTerminal, setShowTerminal] = useState<boolean>(true);
-  const [hostData, setHostData] = useState<any>({
-    platform: 'linux',
-    osName: 'Linux',
-    nodeVersion: 'v22.14.0',
-    gitWorktreeAvailable: true
-  });
-  const [lieCount] = useState<number>(3);
+  const [hostData, setHostData] = useState<any>(null);
+
+  // Apply typography updates dynamically to root
+  useEffect(() => {
+    document.documentElement.style.setProperty('--app-font', appFont);
+    localStorage.setItem('soundcheck_app_font', appFont);
+  }, [appFont]);
+
+  useEffect(() => {
+    localStorage.setItem('soundcheck_accent', accentColor);
+  }, [accentColor]);
+
+  useEffect(() => {
+    localStorage.setItem('soundcheck_term_font', terminalFont);
+  }, [terminalFont]);
+
+  useEffect(() => {
+    localStorage.setItem('soundcheck_term_size', String(terminalFontSize));
+  }, [terminalFontSize]);
 
   // Fetch host environment probe on mount
   useEffect(() => {
@@ -153,45 +170,13 @@ export default function App() {
     }
   };
 
-  const handleSimulateCooldown = (adapterId: string) => {
-    setAdapters((prev) =>
-      prev.map((a) => {
-        if (a.id === adapterId) {
-          return {
-            ...a,
-            cooldownUntil: Date.now() + 35 * 60000,
-            probes: {
-              ...a.probes,
-              L2: {
-                ...a.probes.L2,
-                status: 'failed',
-                errorClass: 'rate_limited',
-                message: 'Simulated rolling 5-hour quota exceeded (Issue #79500).'
-              }
-            }
-          };
-        }
-        return a;
-      })
-    );
-  };
-
   const handleClearCooldown = (adapterId: string) => {
     setAdapters((prev) =>
       prev.map((a) => {
         if (a.id === adapterId) {
           return {
             ...a,
-            cooldownUntil: undefined,
-            probes: {
-              ...a.probes,
-              L2: {
-                ...a.probes.L2,
-                status: 'passed',
-                errorClass: 'ok',
-                message: 'Cooldown cleared. Normal health restored.'
-              }
-            }
+            cooldownUntil: undefined
           };
         }
         return a;
@@ -199,124 +184,129 @@ export default function App() {
     );
   };
 
-  const handleTriggerPrimaryRateLimit = () => {
-    setIsPrimarySimulatedLimited(!isPrimarySimulatedLimited);
-    if (!isPrimarySimulatedLimited) {
-      handleSimulateCooldown('claude');
-    } else {
-      handleClearCooldown('claude');
-    }
-  };
-
   // Compute deterministic role resolutions
-  const resolvedRoles = resolveRoles(config, adapters, {
-    forceCooldownAgentId: isPrimarySimulatedLimited ? 'claude' : undefined
-  });
+  const resolvedRoles = resolveRoles(config, adapters);
 
   // Compute standard capability manifest
   const capabilityManifest = generateCapabilityManifest(adapters, resolvedRoles, {
-    platform: hostData.platform || 'linux',
-    nodeVersion: hostData.nodeVersion || 'v22.x',
-    gitWorktree: !!hostData.gitWorktreeAvailable
+    platform: hostData?.platform || 'darwin',
+    nodeVersion: hostData?.nodeVersion || 'v22.x',
+    gitWorktree: !!hostData?.gitWorktreeAvailable
   });
 
   const activePrimaryModel = `${resolvedRoles.primary?.selectedAgentId || 'claude'}`;
+  const installedCount = adapters.filter((a) => a.installed).length;
 
   return (
-    <div className="min-h-screen bg-[#0A0D12] text-[#E6EAF2] flex flex-col font-mono selection:bg-[#10B981]/20 selection:text-[#10B981]">
-      <Header
+    <div className="min-h-screen bg-[#0A0D12] text-[#E6EAF2] flex selection:bg-[#10B981]/20 selection:text-[#10B981]">
+      {/* Modern Left Sidebar Navigation */}
+      <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onRunDiagnostics={handleRunFullDiagnostics}
         isRunning={isScanning}
-        lieCount={lieCount}
         accentColor={accentColor}
-        setAccentColor={setAccentColor}
         activeResolvedAgent={activePrimaryModel}
+        functionalAgentsCount={installedCount}
+        totalAgentsCount={adapters.length}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
-        {activeTab === 'doctor' && (
-          <DoctorView
-            adapters={adapters}
-            hostData={hostData}
-            probingMode={probingMode}
-            setProbingMode={setProbingMode}
-            onProbeAdapter={handleProbeAdapter}
-            onSimulateCooldown={handleSimulateCooldown}
-            onClearCooldown={handleClearCooldown}
-            isScanning={isScanning}
-            accentColor={accentColor}
-          />
-        )}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
+          {activeTab === 'doctor' && (
+            <DoctorView
+              adapters={adapters}
+              hostData={hostData}
+              onProbeAdapter={handleProbeAdapter}
+              onClearCooldown={handleClearCooldown}
+              isScanning={isScanning}
+              accentColor={accentColor}
+            />
+          )}
 
-        {activeTab === 'resolver' && (
-          <ResolverView
-            config={config}
-            onUpdateConfig={setConfig}
-            resolvedRoles={resolvedRoles}
-            adapters={adapters}
-            onTriggerPrimaryRateLimit={handleTriggerPrimaryRateLimit}
-            isPrimarySimulatedLimited={isPrimarySimulatedLimited}
-            accentColor={accentColor}
-          />
-        )}
+          {activeTab === 'resolver' && (
+            <ResolverView
+              config={config}
+              onUpdateConfig={setConfig}
+              resolvedRoles={resolvedRoles}
+              adapters={adapters}
+              accentColor={accentColor}
+            />
+          )}
 
-        {activeTab === 'workflow' && (
-          <WorkflowStudio
-            resolvedRoles={resolvedRoles}
-            accentColor={accentColor}
-          />
-        )}
+          {activeTab === 'workflow' && (
+            <WorkflowStudio
+              resolvedRoles={resolvedRoles}
+              accentColor={accentColor}
+            />
+          )}
 
-        {activeTab === 'quirks' && <QuirkLabView accentColor={accentColor} />}
+          {activeTab === 'quirks' && <QuirkLabView accentColor={accentColor} />}
 
-        {activeTab === 'manifest' && (
-          <ManifestModal
-            manifest={capabilityManifest}
-            config={config}
-            accentColor={accentColor}
-          />
-        )}
+          {activeTab === 'manifest' && (
+            <ManifestModal
+              manifest={capabilityManifest}
+              config={config}
+              accentColor={accentColor}
+            />
+          )}
 
-        {activeTab === 'design_system' && (
-          <BrandSystemView accentColor={accentColor} />
-        )}
+          {activeTab === 'settings' && (
+            <SettingsView
+              appFont={appFont}
+              setAppFont={setAppFont}
+              terminalFont={terminalFont}
+              setTerminalFont={setTerminalFont}
+              terminalFontSize={terminalFontSize}
+              setTerminalFontSize={setTerminalFontSize}
+              accentColor={accentColor}
+              setAccentColor={setAccentColor}
+              hostData={hostData}
+            />
+          )}
 
-        {/* Real Interactive Subprocess Terminal Console */}
-        <div className="pt-2">
-          <div className="flex items-center justify-between pb-2 font-mono text-xs text-[#8B95A7]">
-            <span className="flex items-center gap-1.5 font-bold text-[#E6EAF2]">
-              <Terminal className="w-3.5 h-3.5" style={{ color: accentColor }} />
-              Live Server Terminal
-            </span>
-            <button
-              onClick={() => setShowTerminal(!showTerminal)}
-              className="flex items-center gap-1 hover:text-[#E6EAF2] transition-colors cursor-pointer"
-            >
-              <span>{showTerminal ? 'Collapse Terminal' : 'Expand Terminal'}</span>
-              {showTerminal ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-            </button>
+          {/* Real Interactive Subprocess Terminal Console */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between pb-2 font-mono text-xs text-[#8B95A7]">
+              <span className="flex items-center gap-1.5 font-bold text-[#E6EAF2]">
+                <Terminal className="w-3.5 h-3.5" style={{ color: accentColor }} />
+                Live Server Terminal
+              </span>
+              <button
+                onClick={() => setShowTerminal(!showTerminal)}
+                className="flex items-center gap-1 hover:text-[#E6EAF2] transition-colors cursor-pointer"
+              >
+                <span>{showTerminal ? 'Collapse Terminal' : 'Expand Terminal'}</span>
+                {showTerminal ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            {showTerminal && (
+              <InteractiveTerminal
+                accentColor={accentColor}
+                terminalFont={terminalFont}
+                terminalFontSize={terminalFontSize}
+              />
+            )}
           </div>
-          {showTerminal && <InteractiveTerminal accentColor={accentColor} />}
-        </div>
-      </main>
+        </main>
 
-      {/* Grounded Precision Footer */}
-      <footer className="border-t border-[#1E2638] bg-[#0A0D12] px-6 py-4 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-[#8B95A7]">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#E6EAF2]">sound<span style={{ color: accentColor }}>check</span></span>
-            <span>·</span>
-            <span>Deterministic Multi-CLI Preflight &amp; Capability Resolver</span>
+        {/* Grounded Precision Footer */}
+        <footer className="border-t border-[#1E2638] bg-[#0A0D12] px-6 py-4 mt-auto">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-[#8B95A7]">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-[#E6EAF2]">sound<span style={{ color: accentColor }}>check</span></span>
+              <span>·</span>
+              <span>Deterministic Multi-CLI Preflight &amp; Capability Resolver</span>
+            </div>
+            <div className="flex items-center gap-4 text-[11px] text-[#8B95A7]">
+              <span>Presence → Auth → Smoke → Model</span>
+              <span>·</span>
+              <span>Real Go Subprocess &amp; PTY Engine</span>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-[#8B95A7]">
-            <span>Presence → Auth → Smoke → Model</span>
-            <span>·</span>
-            <span>Real Go Subprocess &amp; PTY Engine</span>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

@@ -39,14 +39,6 @@ models:
     inputCostPerM: 3.0
     outputCostPerM: 15.0
     verified: true
-  - id: openai/gpt-5.x-mini
-    displayName: "OpenCode GPT-5 Mini"
-    vendor: OpenAI
-    tier: fast
-    contextWindow: 128000
-    inputCostPerM: 0.3
-    outputCostPerM: 1.2
-    verified: true
 probeSpecs:
   L0:
     level: L0

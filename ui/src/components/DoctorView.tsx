@@ -18,10 +18,7 @@ import {
 interface DoctorViewProps {
   adapters: AgentAdapter[];
   hostData: any;
-  probingMode: 'hybrid' | 'live' | 'fixture';
-  setProbingMode: (mode: 'hybrid' | 'live' | 'fixture') => void;
   onProbeAdapter: (adapterId: string, level: ProbeLevel) => void;
-  onSimulateCooldown: (adapterId: string) => void;
   onClearCooldown: (adapterId: string) => void;
   isScanning: boolean;
   accentColor: string;
@@ -30,10 +27,7 @@ interface DoctorViewProps {
 export const DoctorView: React.FC<DoctorViewProps> = ({
   adapters,
   hostData,
-  probingMode,
-  setProbingMode,
   onProbeAdapter,
-  onSimulateCooldown,
   onClearCooldown,
   isScanning,
   accentColor
@@ -163,45 +157,12 @@ export const DoctorView: React.FC<DoctorViewProps> = ({
           />
           <div>
             <div className="text-xs font-mono font-semibold text-[#E6EAF2]">
-              Host Environment: {hostData?.platform || 'Linux x86_64'} · Node {hostData?.nodeVersion || 'v22.x'}
+              Host Environment: {hostData ? `${hostData.platform || 'unknown'} · Node ${hostData.nodeVersion || 'n/a'}` : 'Scanning host...'}
             </div>
             <div className="text-[11px] text-[#8B95A7]">
-              Worktree Sandboxing: {hostData?.gitWorktreeAvailable ? 'Enabled' : 'Simulated'} · TTL Cache: 24h (L0), 1h (L1), 30m (L2)
+              Worktree Sandboxing: {hostData ? (hostData.gitWorktreeAvailable ? 'Enabled' : 'Disabled') : 'Detecting'} · TTL Cache: 24h (L0), 1h (L1), 30m (L2)
             </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1 p-1 bg-[#0A0D12] rounded-lg border border-[#1E2638]">
-          <button
-            onClick={() => setProbingMode('hybrid')}
-            className={`px-3 py-1 text-xs font-mono rounded-md transition-colors cursor-pointer ${
-              probingMode === 'hybrid'
-                ? 'bg-[#121721] text-[#E6EAF2] border border-[#1E2638]'
-                : 'text-[#8B95A7] hover:text-[#E6EAF2]'
-            }`}
-          >
-            Hybrid Mode
-          </button>
-          <button
-            onClick={() => setProbingMode('live')}
-            className={`px-3 py-1 text-xs font-mono rounded-md transition-colors cursor-pointer ${
-              probingMode === 'live'
-                ? 'bg-[#121721] text-[#E6EAF2] border border-[#1E2638]'
-                : 'text-[#8B95A7] hover:text-[#E6EAF2]'
-            }`}
-          >
-            Live Host PATH
-          </button>
-          <button
-            onClick={() => setProbingMode('fixture')}
-            className={`px-3 py-1 text-xs font-mono rounded-md transition-colors cursor-pointer ${
-              probingMode === 'fixture'
-                ? 'bg-[#121721] text-[#E6EAF2] border border-[#1E2638]'
-                : 'text-[#8B95A7] hover:text-[#E6EAF2]'
-            }`}
-          >
-            2026 Fixtures
-          </button>
         </div>
       </div>
 
@@ -320,20 +281,12 @@ export const DoctorView: React.FC<DoctorViewProps> = ({
 
                   {/* Actions for this adapter */}
                   <div className="flex items-center gap-2 self-end lg:self-auto">
-                    {isCooldown ? (
+                    {isCooldown && (
                       <button
                         onClick={() => onClearCooldown(adapter.id)}
                         className="px-2.5 py-1 text-xs font-mono text-[#F59E0B] hover:text-white bg-[#F59E0B]/10 hover:bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-md transition-colors cursor-pointer"
                       >
                         Reset Cooldown
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onSimulateCooldown(adapter.id)}
-                        className="px-2.5 py-1 text-xs font-mono text-[#8B95A7] hover:text-[#F87171] hover:bg-[#EF4444]/10 border border-[#1E2638] hover:border-[#EF4444]/30 rounded-md transition-colors cursor-pointer"
-                        title="Simulate 429 quota exhaustion"
-                      >
-                        Simulate 429
                       </button>
                     )}
 

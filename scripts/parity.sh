@@ -174,17 +174,6 @@ if (diffs > 0) {
 echo "    ✓ Manifest Parity: 100% structural parity (0 diff)"
 
 # ------------------------------------------------------------------------------
-# 4. Legacy Cleanup Verification
-# ------------------------------------------------------------------------------
-if [ -d "legacy" ]; then
-  echo "--> Removing legacy/ directory..."
-  rm -rf legacy
-  echo "    ✓ Legacy directory purged."
-else
-  echo "--> Legacy directory already clean (no legacy/ folder present)."
-fi
-
-# ------------------------------------------------------------------------------
 # Parity Summary
 # ------------------------------------------------------------------------------
 echo ""
@@ -193,5 +182,4 @@ echo "  PARITY GATE STATUS: 100% PASSED (0 DIFFS)"
 echo "  - Classification: PASS (Golden fixtures verified)"
 echo "  - Resolution:     PASS (Exact agent & model match)"
 echo "  - Manifest:       PASS (Structural schema parity)"
-echo "  - Legacy:         CLEAN"
 echo "================================================="

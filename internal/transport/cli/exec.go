@@ -40,7 +40,7 @@ func runExec(cmd *cobra.Command, opts *RootOptions, a *app.App, prompt string) e
 	ctx, cancel := resolveContext(cmd.Context(), opts.Timeout)
 	defer cancel()
 
-	target := ""
+	var target string
 	if adapter, _ := cmd.Flags().GetString("adapter"); adapter != "" {
 		target = adapter
 	} else if role, _ := cmd.Flags().GetString("role"); role != "" {
@@ -49,7 +49,7 @@ func runExec(cmd *cobra.Command, opts *RootOptions, a *app.App, prompt string) e
 
 	res, err := appInstance.RunPrompt(ctx, prompt, target)
 	if err != nil {
-		return &ExitError{Code: ExitFailed, Err: err}
+		return &ExitError{Code: ExitUsage, Err: err}
 	}
 
 	if opts.JSON {

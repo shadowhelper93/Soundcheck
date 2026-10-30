@@ -9,7 +9,7 @@ export class DashboardWebview {
   private static serverProcess: cp.ChildProcess | undefined;
 
   public static async open(context: vscode.ExtensionContext): Promise<void> {
-    const port = vscode.workspace.getConfiguration('soundcheck').get<number>('serverPort') || 8080;
+    const port = vscode.workspace.getConfiguration('soundcheck').get<number>('serverPort') || 3000;
 
     const running = await this.checkServer(port);
     if (!running) {

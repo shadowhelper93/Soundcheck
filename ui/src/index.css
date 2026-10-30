@@ -8,6 +8,7 @@
 }
 
 :root {
+  --app-font: 'Fira Code', monospace;
   --bg-canvas: #0A0D12;
   --bg-surface: #121721;
   --bg-surface-elevated: #161D2B;
@@ -23,14 +24,14 @@
 }
 
 * {
-  font-family: 'Fira Code', monospace;
+  font-family: var(--app-font);
   box-sizing: border-box;
 }
 
 body, button, input, select, textarea {
   background-color: #0A0D12;
   color: #E6EAF2;
-  font-family: 'Fira Code', monospace !important;
+  font-family: var(--app-font) !important;
   font-feature-settings: "calt" 1, "liga" 1;
   margin: 0;
   -webkit-font-smoothing: antialiased;
@@ -38,12 +39,12 @@ body, button, input, select, textarea {
 }
 
 .font-mono, .font-sans, code, kbd, samp, pre {
-  font-family: 'Fira Code', monospace !important;
+  font-family: var(--app-font) !important;
   font-feature-settings: "calt" 1, "liga" 1;
 }
 
 .font-display {
-  font-family: 'Fira Code', monospace !important;
+  font-family: var(--app-font) !important;
   letter-spacing: -0.02em;
 }
 

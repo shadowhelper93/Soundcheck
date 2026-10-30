@@ -5,9 +5,15 @@ import { FitAddon } from '@xterm/addon-fit';
 
 interface InteractiveTerminalProps {
   accentColor: string;
+  terminalFont?: string;
+  terminalFontSize?: number;
 }
 
-export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({ accentColor }) => {
+export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({
+  accentColor,
+  terminalFont = "'Fira Code', monospace",
+  terminalFontSize = 13
+}) => {
   const [command, setCommand] = useState<string>('soundcheck doctor');
   const [connected, setConnected] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -81,13 +87,21 @@ export const InteractiveTerminal: React.FC<InteractiveTerminalProps> = ({ accent
   }, []);
 
   useEffect(() => {
+    if (xtermRef.current) {
+      xtermRef.current.options.fontFamily = terminalFont;
+      xtermRef.current.options.fontSize = terminalFontSize;
+      fitAddonRef.current?.fit();
+    }
+  }, [terminalFont, terminalFontSize]);
+
+  useEffect(() => {
     if (!terminalContainerRef.current) return;
 
     // Initialize xterm
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily: "'Fira Code', monospace",
-      fontSize: 13,
+      fontFamily: terminalFont,
+      fontSize: terminalFontSize,
       lineHeight: 1.25,
       theme: {
         background: '#0A0D12',

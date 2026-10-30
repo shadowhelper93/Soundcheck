@@ -80,14 +80,33 @@ make build
 |---|---|
 | `soundcheck doctor [--deep] [--json]` | Run comprehensive health check on all installed adapters |
 | `soundcheck probe <adapter> [--deep]` | Probe a single adapter (e.g. `soundcheck probe claude`) |
-| `soundcheck resolve [--role <role>]` | Output deterministic role assignments (primary, reviewer, etc.) |
-| `soundcheck exec <prompt> [--role <role>]` | Run prompt headless with automatic failover cascading |
+| `soundcheck resolve [role]` | Output deterministic role assignments (e.g. `soundcheck resolve primary`) |
+| `soundcheck exec <prompt> [--role <role>] [--adapter <adapter>]` | Run prompt headless with automatic failover cascading |
 | `soundcheck run <adapter> [-- <args>]` | Launch interactive PTY session with real-time streaming |
 | `soundcheck manifest [--json]` | Export machine-readable agent capability manifest |
-| `soundcheck serve [--port 8080]` | Start HTTP server and embedded web dashboard |
+| `soundcheck serve [--port 3000] [--token <token>]` | Start HTTP server and embedded web dashboard (default port 3000) |
 | `soundcheck mcp` | Launch stdio Model Context Protocol (MCP) server |
 | `soundcheck upgrade [--check]` | Check for newer releases and self-update executable |
 | `soundcheck version` | Print version and build metadata |
+
+---
+
+## REST & Streaming API Reference
+
+When launched via `soundcheck serve [--port 3000]`, the embedded HTTP server exposes the following endpoints:
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/health` | `GET` | Health check and server version |
+| `/api/v1/doctor` | `GET` | Aggregated preflight report (supports SSE streaming via `Accept: text/event-stream`) |
+| `/api/v1/probe` | `GET` | Run preflight probes across all CLI adapters |
+| `/api/v1/probe/{id}` | `POST` | Trigger targeted probe for a single adapter |
+| `/api/v1/resolve` | `GET`, `POST` | Deterministic role-to-adapter resolution |
+| `/api/v1/manifest` | `GET` | Complete capability manifest JSON |
+| `/api/v1/config` | `GET` | Read active configuration (returns `X-Config-Path` header) |
+| `/api/v1/config` | `PUT` | Atomically validate and persist configuration to YAML file |
+| `/api/v1/config/validate` | `POST` | Validate candidate list against live probed host adapters |
+| `/api/v1/terminal/ws` | `WS` | WebSocket PTY session for interactive CLI streaming |
 
 ---
 

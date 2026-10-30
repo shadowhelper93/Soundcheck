@@ -41,4 +41,25 @@ func TestAppRunPrompt_FallbackToWorkingAgent(t *testing.T) {
 	if !res.Success {
 		t.Fatal("expected prompt run to succeed with fakecli")
 	}
+
+	t.Run("explicit unknown target returns error", func(t *testing.T) {
+		_, err := a.RunPrompt(context.Background(), "hello", "definitely-not-an-agent")
+		if err == nil {
+			t.Fatal("expected error for unknown target, got nil")
+		}
+	})
+
+	t.Run("explicit role targets role candidates", func(t *testing.T) {
+		cfg := a.Config()
+		cfg.Roles["custom_worker"] = []string{"claude:model-a"}
+		a.SetConfig(cfg)
+
+		res, err := a.RunPrompt(context.Background(), "hello", "custom_worker")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if res.AgentUsed != "claude" {
+			t.Fatalf("expected agent claude, got %s", res.AgentUsed)
+		}
+	})
 }

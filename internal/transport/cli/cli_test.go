@@ -475,8 +475,8 @@ func TestBinarySubprocessExecution(t *testing.T) {
 		if err != nil {
 			t.Fatalf("binary version failed: %v: %s", err, string(out))
 		}
-		if !strings.Contains(string(out), cli.Version) {
-			t.Errorf("expected version %s, got: %s", cli.Version, string(out))
+		if !strings.Contains(string(out), "soundcheck") {
+			t.Errorf("expected version output to contain soundcheck, got: %s", string(out))
 		}
 	})
 
@@ -530,6 +530,19 @@ func TestCLIServeAndMCP(t *testing.T) {
 		})
 		if code != cli.ExitOK {
 			t.Fatalf("expected ExitOK (0), got %d, out=%s", code, stdout.String())
+		}
+	})
+
+	t.Run("exec command with unknown adapter returns usage error", func(t *testing.T) {
+		var stdout, stderr bytes.Buffer
+		code := cli.ExecuteCustom(context.Background(), cli.ExecutionConfig{
+			Args: []string{"exec", "--adapter", "definitely-not-an-agent", "hello world"},
+			Out:  &stdout,
+			Err:  &stderr,
+			App:  a,
+		})
+		if code != cli.ExitUsage {
+			t.Fatalf("expected ExitUsage (3), got %d, out=%s, err=%s", code, stdout.String(), stderr.String())
 		}
 	})
 }

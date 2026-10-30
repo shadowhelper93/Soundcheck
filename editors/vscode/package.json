@@ -98,7 +98,7 @@
         },
         "soundcheck.serverPort": {
           "type": "number",
-          "default": 8080,
+          "default": 3000,
           "description": "Local HTTP port used for the Soundcheck web dashboard."
         }
       }

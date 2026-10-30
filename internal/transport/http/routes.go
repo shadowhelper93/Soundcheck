@@ -21,6 +21,7 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("GET /api/v1/adapters", s.handleAdapters)
 	s.mux.HandleFunc("GET /api/v1/config", s.handleConfigGet)
 	s.mux.HandleFunc("PUT /api/v1/config", s.handleConfigPut)
+	s.mux.HandleFunc("POST /api/v1/config/validate", s.handleConfigValidate)
 	s.mux.Handle("/api/v1/terminal/ws", ws.NewTerminalHandler(s.ptyRunner))
 
 	s.mux.HandleFunc("/api/health", s.handleHealth)
@@ -155,6 +156,7 @@ func (s *Server) handleAdapters(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleConfigGet(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("X-Config-Path", s.app.ConfigPath())
 	writeJSON(w, http.StatusOK, s.app.Config())
 }
 
@@ -164,8 +166,20 @@ func (s *Server) handleConfigPut(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid config json: %v", err))
 		return
 	}
-	s.app.SetConfig(cfg)
+	if err := s.app.SaveConfig(cfg); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, s.app.Config())
+}
+
+func (s *Server) handleConfigValidate(w http.ResponseWriter, r *http.Request) {
+	var cfg domain.Config
+	if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid config json: %v", err))
+		return
+	}
+	writeJSON(w, http.StatusOK, s.app.ValidateConfig(r.Context(), cfg))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {

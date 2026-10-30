@@ -76,7 +76,7 @@ func DefaultConfig() domain.Config {
 		Roles: map[domain.Role][]string{
 			domain.RolePrimary: {
 				"claude:claude-3-7-sonnet",
-				"codex:gpt-5-codex",
+				"codex:gpt-4o",
 				"opencode:anthropic/claude-sonnet",
 				"agy:gemini-2.5-pro",
 			},
@@ -88,7 +88,7 @@ func DefaultConfig() domain.Config {
 			domain.RoleAuxiliary: {
 				"claude:claude-3-5-haiku",
 				"agy:gemini-2.5-flash",
-				"codex:gpt-5-mini",
+				"codex:gpt-4o-mini",
 			},
 			domain.RoleReviewer: {
 				"codex:*",

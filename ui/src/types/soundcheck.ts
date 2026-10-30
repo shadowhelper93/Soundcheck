@@ -46,7 +46,6 @@ export interface ProbeResult {
     stdout?: string;
     stderr?: string;
     parsedJson?: any;
-    simulated?: boolean;
     quirkTriggered?: string;
   };
 }

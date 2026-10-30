@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AgentAdapter, AgentRole, SoundcheckConfig } from '../types/soundcheck';
 import { DetailedResolution } from '../core/engine/resolver';
 import { SoundcheckMark } from './SoundcheckLogo';
+import { RoleConfigEditor } from './RoleConfigEditor';
 import {
   Cpu,
   Flame,
@@ -18,8 +19,6 @@ interface ResolverViewProps {
   onUpdateConfig: (newConfig: SoundcheckConfig) => void;
   resolvedRoles: Record<AgentRole, DetailedResolution>;
   adapters: AgentAdapter[];
-  onTriggerPrimaryRateLimit: () => void;
-  isPrimarySimulatedLimited: boolean;
   accentColor: string;
 }
 
@@ -27,8 +26,6 @@ export const ResolverView: React.FC<ResolverViewProps> = ({
   config,
   onUpdateConfig,
   resolvedRoles,
-  onTriggerPrimaryRateLimit,
-  isPrimarySimulatedLimited,
   accentColor
 }) => {
   const [selectedRoleForDetail, setSelectedRoleForDetail] = useState<AgentRole>('primary');
@@ -88,22 +85,8 @@ export const ResolverView: React.FC<ResolverViewProps> = ({
           </p>
         </div>
 
-        {/* Live Fallback Simulation Button */}
+        {/* Policy Editor Action */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={onTriggerPrimaryRateLimit}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-mono font-medium rounded-lg border transition-all cursor-pointer ${
-              isPrimarySimulatedLimited
-                ? 'bg-[#EF4444]/20 text-[#F87171] border-[#EF4444]/40'
-                : 'bg-[#0A0D12] hover:bg-[#1E2638] text-[#E6EAF2] border-[#1E2638]'
-            }`}
-          >
-            <Flame className={`w-3.5 h-3.5 ${isPrimarySimulatedLimited ? 'text-[#EF4444] animate-pulse' : 'text-[#8B95A7]'}`} />
-            <span>
-              {isPrimarySimulatedLimited ? 'Simulating 429 Failover (ACTIVE)' : 'Simulate 429 on Primary'}
-            </span>
-          </button>
-
           <button
             onClick={() => setIsEditingPolicy(!isEditingPolicy)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono text-[#8B95A7] hover:text-[#E6EAF2] bg-[#0A0D12] border border-[#1E2638] rounded-lg transition-colors cursor-pointer"
@@ -126,38 +109,13 @@ export const ResolverView: React.FC<ResolverViewProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-            <div className="p-4 rounded-lg bg-[#121721] border border-[#1E2638] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[#E6EAF2] font-semibold flex items-center gap-1.5">
-                  <Split className="w-4 h-4 text-[#06B6D4]" />
-                  require_distinct_vendor: [primary, reviewer]
-                </span>
-                <input
-                  type="checkbox"
-                  checked={true}
-                  readOnly
-                  className="rounded bg-[#0A0D12] border-[#1E2638]"
-                  style={{ accentColor }}
-                />
-              </div>
-              <p className="text-[#8B95A7] text-[11px] leading-relaxed">
-                Prevents single-vendor echo chambers: primary code cannot be reviewed by the same vendor (e.g. Anthropic primary reviewed by Codex/Google).
-              </p>
-            </div>
-
-            <div className="p-4 rounded-lg bg-[#121721] border border-[#1E2638] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[#E6EAF2] font-semibold flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4" style={{ color: accentColor }} />
-                  max_cost_usd_per_run: ${config.policy.max_cost_usd_per_run}
-                </span>
-              </div>
-              <p className="text-[#8B95A7] text-[11px] leading-relaxed">
-                Rejects candidates whose estimated stage token consumption exceeds the configured run budget.
-              </p>
-            </div>
-          </div>
+          <RoleConfigEditor
+            accentColor={accentColor}
+            onConfigSaved={(saved) => {
+              onUpdateConfig(saved);
+              queryLiveResolve(selectedRoleForDetail);
+            }}
+          />
         </div>
       )}
 

@@ -82,6 +82,10 @@ func applyUpgrade(ctx context.Context, cmd *cobra.Command, rel *upgrade.ReleaseI
 	if err != nil {
 		return err
 	}
+	if checksums.DownloadURL == "" {
+		return fmt.Errorf("release %s is missing checksums.txt asset", rel.TagName)
+	}
+
 	tmpDir, err := os.MkdirTemp("", "soundcheck-upgrade-*")
 	if err != nil {
 		return err
@@ -92,12 +96,15 @@ func applyUpgrade(ctx context.Context, cmd *cobra.Command, rel *upgrade.ReleaseI
 	if err := upgrade.DownloadFile(ctx, archive.DownloadURL, archivePath); err != nil {
 		return fmt.Errorf("download archive: %w", err)
 	}
-	if checksums.DownloadURL != "" {
-		csPath := filepath.Join(tmpDir, "checksums.txt")
-		if err := upgrade.DownloadFile(ctx, checksums.DownloadURL, csPath); err == nil {
-			_ = upgrade.VerifyChecksum(archivePath, csPath)
-		}
+
+	csPath := filepath.Join(tmpDir, "checksums.txt")
+	if err := upgrade.DownloadFile(ctx, checksums.DownloadURL, csPath); err != nil {
+		return fmt.Errorf("download checksums: %w", err)
 	}
+	if err := upgrade.VerifyChecksum(archivePath, csPath); err != nil {
+		return fmt.Errorf("verify checksum: %w", err)
+	}
+
 	return extractAndReplace(archivePath, execPath, rel.TagName, out)
 }
 

@@ -14,6 +14,7 @@ import (
 	"github.com/soundcheck/soundcheck/internal/core/domain"
 	"github.com/soundcheck/soundcheck/internal/core/manifest"
 	"github.com/soundcheck/soundcheck/internal/core/resolve"
+	"github.com/soundcheck/soundcheck/internal/edge/config"
 	"github.com/soundcheck/soundcheck/internal/edge/exec"
 	"github.com/soundcheck/soundcheck/internal/edge/probe"
 	"github.com/soundcheck/soundcheck/internal/edge/store"
@@ -30,6 +31,7 @@ type App struct {
 	defs     map[string]adapters.Definition
 	defList  []adapters.Definition
 	probeTTL time.Duration
+	cfgPath  string
 }
 
 // Option configures App settings.
@@ -38,6 +40,11 @@ type Option func(*App)
 // WithConfig sets the domain configuration.
 func WithConfig(cfg domain.Config) Option {
 	return func(a *App) { a.cfg = cfg }
+}
+
+// WithConfigPath sets the YAML file that SaveConfig persists to.
+func WithConfigPath(path string) Option {
+	return func(a *App) { a.cfgPath = path }
 }
 
 // WithRunner sets the process execution runner.
@@ -135,6 +142,11 @@ func (a *App) Resolve(ctx context.Context, roleFilter string) (map[domain.Role]d
 	return filtered, nil
 }
 
+// ValidateConfig live-probes adapters and verifies each configured role candidate.
+func (a *App) ValidateConfig(ctx context.Context, cfg domain.Config) []resolve.CandidateCheck {
+	return resolve.ValidateConfig(cfg, a.prober.ProbeAll(ctx, a.defList))
+}
+
 // Manifest builds the complete capability manifest.
 func (a *App) Manifest(ctx context.Context) (domain.Manifest, error) {
 	report, err := a.Doctor(ctx)
@@ -165,6 +177,23 @@ func (a *App) SetConfig(cfg domain.Config) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.cfg = cfg
+}
+
+// ConfigPath returns the file SaveConfig persists to (default agent-doctor.yaml).
+func (a *App) ConfigPath() string {
+	if a.cfgPath == "" {
+		return "agent-doctor.yaml"
+	}
+	return a.cfgPath
+}
+
+// SaveConfig validates cfg, persists it to ConfigPath, then applies it in memory.
+func (a *App) SaveConfig(cfg domain.Config) error {
+	if err := config.Save(a.ConfigPath(), cfg); err != nil {
+		return err
+	}
+	a.SetConfig(cfg)
+	return nil
 }
 
 // Definitions returns the list of loaded adapter definitions.

@@ -224,7 +224,7 @@ func resolveApp(opts *RootOptions, injected *app.App) (*app.App, error) {
 		if err != nil {
 			return nil, &ExitError{Code: ExitConfigInvalid, Err: fmt.Errorf("config error: %w", err)}
 		}
-		appOpts = append(appOpts, app.WithConfig(cfg))
+		appOpts = append(appOpts, app.WithConfig(cfg), app.WithConfigPath(cfgPath))
 	}
 	application, err := app.New(appOpts...)
 	if err != nil {
