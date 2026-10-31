@@ -15,7 +15,11 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/soundcheck/soundcheck/internal/app"
+	"github.com/soundcheck/soundcheck/internal/core/domain"
 	"github.com/soundcheck/soundcheck/internal/edge/config"
+	"github.com/soundcheck/soundcheck/internal/edge/exec"
+	"github.com/soundcheck/soundcheck/internal/edge/probe"
+	"github.com/soundcheck/soundcheck/internal/edge/store"
 )
 
 // Standard exit codes.
@@ -219,18 +223,51 @@ func resolveApp(opts *RootOptions, injected *app.App) (*app.App, error) {
 	}
 	var appOpts []app.Option
 	cfgPath := resolveConfigFile(opts.Config)
+	ttl := defaultProbeTTL
 	if cfgPath != "" {
 		cfg, err := config.Load(cfgPath)
 		if err != nil {
 			return nil, &ExitError{Code: ExitConfigInvalid, Err: fmt.Errorf("config error: %w", err)}
 		}
 		appOpts = append(appOpts, app.WithConfig(cfg), app.WithConfigPath(cfgPath))
+		ttl = time.Duration(cfg.Policy.Probe.TTLMinutes * float64(time.Minute))
 	}
+	appOpts = append(appOpts, costAwareProberOptions(ttl)...)
 	application, err := app.New(appOpts...)
 	if err != nil {
 		return nil, &ExitError{Code: ExitFailed, Err: err}
 	}
 	return application, nil
+}
+
+// costAwareProberOptions caps probing at L1 (no model calls) unless --deep is set.
+// Deep (L2/L3) results persist to the user cache dir so ttl_minutes applies across runs.
+func costAwareProberOptions(ttl time.Duration) []app.Option {
+	pr := probe.New(
+		probe.WithRunner(exec.NewPipeRunner()),
+		probe.WithCache(store.NewTTLCache(probeCacheStore())),
+		probe.WithMaxTier(domain.TierL1),
+		probe.WithTTL(ttl),
+	)
+	return []app.Option{app.WithProber(pr), app.WithProbeTTL(ttl)}
+}
+
+const (
+	defaultProbeTTL = 30 * time.Minute
+	// deepProbeWarning is printed before any L2/L3 probe runs, since each one invokes a paid model.
+	deepProbeWarning = "warning: deep probes call real models and may cost money"
+)
+
+func probeCacheStore() store.Store {
+	dir, err := os.UserCacheDir()
+	if err != nil {
+		return nil
+	}
+	fs, err := store.NewFileStore(filepath.Join(dir, "soundcheck", "probes"))
+	if err != nil {
+		return nil
+	}
+	return fs
 }
 
 func resolveContext(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {

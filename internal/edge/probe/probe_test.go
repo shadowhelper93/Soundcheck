@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -316,5 +317,114 @@ func BenchmarkL0Sweep(b *testing.B) {
 	avgDuration := elapsed / time.Duration(b.N)
 	if avgDuration > 150*time.Millisecond {
 		b.Errorf("expected L0 sweep <= 150ms, got %v", avgDuration)
+	}
+}
+
+// recordingRunner fakes every CLI call and records the command text so tests can prove
+// which tiers spent model calls. It never execs a real binary.
+type recordingRunner struct {
+	mu    sync.Mutex
+	calls []string
+	// failModel makes only model-spending calls (-p) exit 1; presence/auth still pass.
+	failModel bool
+}
+
+func (r *recordingRunner) Run(_ context.Context, cmd edgeExec.Cmd) (edgeExec.Result, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	line := cmd.Binary + " " + strings.Join(cmd.Args, " ")
+	r.calls = append(r.calls, line)
+	exit := 0
+	if r.failModel && strings.Contains(line, "-p ") {
+		exit = 1
+	}
+	return edgeExec.Result{ExitCode: exit, Stdout: []byte("ok")}, nil
+}
+
+func (r *recordingRunner) Stream(_ context.Context, _ edgeExec.Cmd) (<-chan edgeExec.Event, error) {
+	ch := make(chan edgeExec.Event)
+	close(ch)
+	return ch, nil
+}
+
+func (r *recordingRunner) count() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.calls)
+}
+
+func costDef() adapters.Definition {
+	return adapters.Definition{
+		Adapter: domain.Adapter{ID: "paid", Name: "Paid", Binary: "sh", Installed: true},
+		ProbeSpecs: map[domain.Tier]domain.Probe{
+			domain.TierL0: {Level: domain.TierL0, Command: "sh --version", TimeoutMs: 1000},
+			domain.TierL1: {Level: domain.TierL1, Command: "sh auth", TimeoutMs: 1000},
+			domain.TierL2: {Level: domain.TierL2, Command: "sh -p smoke", TimeoutMs: 1000},
+			domain.TierL3: {Level: domain.TierL3, Command: "sh -p ping", TimeoutMs: 1000},
+		},
+	}
+}
+
+func TestProbeL1CapMakesZeroModelCalls(t *testing.T) {
+	r := &recordingRunner{}
+	p := probe.New(probe.WithRunner(r), probe.WithMaxTier(domain.TierL1))
+
+	ad := p.ProbeAdapter(context.Background(), costDef())
+
+	for _, c := range r.calls {
+		if strings.Contains(c, "-p smoke") || strings.Contains(c, "-p ping") {
+			t.Fatalf("L1 cap ran a model call: %q", c)
+		}
+	}
+	if ad.Probes[domain.TierL2].Status != "pending" || ad.Probes[domain.TierL3].Status != "pending" {
+		t.Fatalf("expected L2/L3 skipped, got L2=%q L3=%q",
+			ad.Probes[domain.TierL2].Status, ad.Probes[domain.TierL3].Status)
+	}
+}
+
+func TestProbeL3CallsModelWhenUncapped(t *testing.T) {
+	r := &recordingRunner{}
+	p := probe.New(probe.WithRunner(r), probe.WithMaxTier(domain.TierL3))
+
+	p.ProbeAdapter(context.Background(), costDef())
+
+	sawModel := false
+	for _, c := range r.calls {
+		if strings.Contains(c, "-p ") {
+			sawModel = true
+		}
+	}
+	if !sawModel {
+		t.Fatalf("control: uncapped prober should spend a model call, calls=%v", r.calls)
+	}
+}
+
+func TestProbeDeepPassCachedWithinTTL(t *testing.T) {
+	r := &recordingRunner{}
+	cache := store.NewTTLCache(nil)
+	p := probe.New(probe.WithRunner(r), probe.WithCache(cache), probe.WithTTL(time.Minute))
+	def := costDef()
+
+	p.ProbeAdapter(context.Background(), def, probe.WithCallMaxTier(domain.TierL3))
+	first := r.count()
+	p.ProbeAdapter(context.Background(), def, probe.WithCallMaxTier(domain.TierL3))
+
+	if got := r.count(); got != first {
+		t.Fatalf("expected cached deep pass to skip model calls: first=%d second=%d", first, got)
+	}
+}
+
+func TestProbeDeepFailNotCached(t *testing.T) {
+	r := &recordingRunner{failModel: true}
+	cache := store.NewTTLCache(nil)
+	p := probe.New(probe.WithRunner(r), probe.WithCache(cache), probe.WithTTL(time.Minute))
+	def := costDef()
+
+	p.ProbeAdapter(context.Background(), def, probe.WithCallMaxTier(domain.TierL3))
+	first := r.count()
+	p.ProbeAdapter(context.Background(), def, probe.WithCallMaxTier(domain.TierL3))
+
+	if r.count() <= first {
+		t.Fatalf("failed deep probe must not be cached; calls first=%d total=%d", first, r.count())
 	}
 }
