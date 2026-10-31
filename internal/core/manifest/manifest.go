@@ -66,7 +66,8 @@ func buildAgentSummary(a domain.Adapter, nowMs int64) (domain.ManifestAgent, boo
 	isCooldown := a.CooldownUntil != nil && *a.CooldownUntil > nowMs
 	l1, hasL1 := a.Probes[domain.TierL1]
 	authValid := hasL1 && l1.Status == "passed"
-	isFunctional := a.Installed && authValid && !isCooldown
+	h := domain.EvalHealth(a)
+	isFunctional := h.Status == domain.AdapterHealthUsable && !isCooldown
 
 	errClass := domain.ErrorClassOK
 	if l2, hasL2 := a.Probes[domain.TierL2]; hasL2 && l2.ErrorClass != "" {

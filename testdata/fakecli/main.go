@@ -12,13 +12,20 @@ import (
 )
 
 func main() {
-	quirk := flag.String("quirk", "", "Quirk mode: rate_limit, unauth, gemini_41, hang, spawn_and_hang, noisy")
-	exitCode := flag.Int("exit", 0, "Exit code to return")
-	stdoutMsg := flag.String("stdout", "", "Message to write to stdout")
-	stderrMsg := flag.String("stderr", "", "Message to write to stderr")
-	versionFlag := flag.Bool("version", false, "Print version and exit")
-	pidFile := flag.String("pid-file", "", "File to write spawned child PID to")
-	flag.Parse()
+	fs := flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	quirk := fs.String("quirk", "", "Quirk mode: rate_limit, unauth, gemini_41, hang, spawn_and_hang, noisy")
+	exitCode := fs.Int("exit", 0, "Exit code to return")
+	stdoutMsg := fs.String("stdout", "", "Message to write to stdout")
+	stderrMsg := fs.String("stderr", "", "Message to write to stderr")
+	versionFlag := fs.Bool("version", false, "Print version and exit")
+	pidFile := fs.String("pid-file", "", "File to write spawned child PID to")
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		// Unknown flag from a real-CLI invocation pattern (e.g. -p, exec, --json).
+		// Simulate a successful headless turn so L2/L3 probe smoke tests pass.
+		fmt.Println(`{"ok":true}`)
+		os.Exit(0)
+	}
 
 	if *versionFlag || hasArg("--version") {
 		fmt.Println("fakecli v1.0.0")
