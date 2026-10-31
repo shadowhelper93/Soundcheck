@@ -88,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               sound<span style={{ color: accentColor }}>check</span>
             </span>
             <span className="font-mono text-[10px] text-[#8B95A7] block mt-1">
-              v1.4.0-oct2026
+              v2.0.0
             </span>
           </div>
         </div>

@@ -183,7 +183,7 @@ func (s *Server) handleConfigValidate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": "1.4.0"})
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": "2.0.0"})
 }
 
 func (s *Server) handleProbeCompat(w http.ResponseWriter, r *http.Request) {
