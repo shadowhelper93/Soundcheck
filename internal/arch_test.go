@@ -16,6 +16,14 @@ const (
 	corePrefix   = modulePrefix + "/internal/core"
 )
 
+// Banned: non-stdlib deps allowed only in internal/edge/** + internal/transport/**.
+var bannedCoreImports = []string{
+	"github.com/yuin/gopher-lua",
+	"github.com/creack/pty",
+	"golang.org/x/crypto/ssh",
+	"golang.org/x/sys",
+}
+
 func findModuleRoot(t *testing.T) string {
 	t.Helper()
 	dir, err := os.Getwd()
@@ -34,15 +42,23 @@ func findModuleRoot(t *testing.T) string {
 	}
 }
 
+// isAllowedImport classifies an import path for internal/core/**.
 func isAllowedImport(imp string) bool {
+	for _, b := range bannedCoreImports {
+		if imp == b || strings.HasPrefix(imp, b+"/") {
+			return false
+		}
+	}
 	if imp == corePrefix || strings.HasPrefix(imp, corePrefix+"/") {
 		return true
 	}
-	firstSegment := imp
-	if idx := strings.IndexByte(imp, '/'); idx != -1 {
-		firstSegment = imp[:idx]
+	// ponytail: first-segment no-dot check rejects all remaining non-stdlib
+	// packages in one pass; add a package here when a new stdlib one appears.
+	first := imp
+	if i := strings.IndexByte(imp, '/'); i >= 0 {
+		first = imp[:i]
 	}
-	return !strings.Contains(firstSegment, ".")
+	return !strings.Contains(first, ".")
 }
 
 func TestCorePackageImportsStdlibOnly(t *testing.T) {
