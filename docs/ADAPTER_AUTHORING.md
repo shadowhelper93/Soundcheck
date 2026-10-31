@@ -14,10 +14,21 @@ name: "MyAgent CLI"
 binary: "myagent"
 versionArgs: ["--version"]
 headlessCommand: "myagent -p"
+modelsCommand: "myagent debug models" # Optional live discovery command
 
 roles:
   - "primary"
   - "subagent"
+
+models:
+  - id: "myagent-model-v1"
+    displayName: "MyAgent Model v1"
+    vendor: "MyAgent Inc"
+    tier: "frontier"
+    contextWindow: 200000
+    inputCostPerM: 2.0
+    outputCostPerM: 10.0
+    verified: true
 
 probe:
   l0:
@@ -62,7 +73,33 @@ The `headlessCommand` property is used by `soundcheck exec` to pass prompts non-
 
 ---
 
-## 4. Test Fixtures
+## 4. Live Model Discovery (`modelsCommand`)
+
+Adapters can optionally declare `modelsCommand`:
+- Command executed via shell runner under 10s timeout during probe.
+- Expected to return JSON containing `.models[]` with `slug` (or `id`) and `display_name`.
+- When present and successful, live models replace or augment the static catalog for the logged-in account.
+- When omitted or when the command returns non-zero, Soundcheck falls back safely to the curated static `models:` list in the YAML file.
+
+---
+
+## 5. Adding an Adapter Step-by-Step
+
+Per `AGENTS.md` Lane C:
+1. Create `internal/adapters/<id>.yaml` adhering to the schema above.
+2. Define adapter metadata, supported roles, optional `modelsCommand`, and probe configurations (L0-L3).
+3. If the adapter encounters deceptive exit codes (e.g. exit 0 on failure), define quirks under `quirks:` with exact regex patterns and error classifications.
+4. Add corresponding test fixtures or fake-CLI scripts in `testdata/fakecli/<id>`.
+5. Run tests:
+   ```bash
+   go test -v ./internal/adapters/...
+   go test -v ./internal/edge/probe/...
+   ```
+6. Run `make check` and `bash scripts/parity.sh` to ensure all quality gates and arch tests pass.
+
+---
+
+## 6. Test Fixtures
 
 When adding or modifying an adapter:
 1. Create mock or fake-CLI scripts under `testdata/fakecli/<adapter-id>`.

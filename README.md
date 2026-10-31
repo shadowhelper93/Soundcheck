@@ -110,6 +110,101 @@ When launched via `soundcheck serve [--port 3000]`, the embedded HTTP server exp
 
 ---
 
+## Configuration & Web UI Resolver Policy Editor
+
+Soundcheck deterministically routes agent roles (`primary`, `subagent`, `auxiliary`, `reviewer`) based on rules and candidate fallbacks.
+
+### Configuration File Location & `X-Config-Path`
+
+When Soundcheck starts, it resolves configuration files in order:
+1. Explicit path passed via `-c / --config <file>`
+2. `./soundcheck.yaml` or `./soundcheck.yml`
+3. `./agent-doctor.yaml` or `./agent-doctor.yml`
+4. `~/.config/soundcheck/config.yaml`
+5. Built-in defaults (persisting defaults to `agent-doctor.yaml` if no file was found)
+
+Every request to `/api/v1/config` returns the active filepath in the `X-Config-Path` HTTP response header (and the header is exposed in CORS via `Access-Control-Expose-Headers: X-Config-Path`).
+
+Real request header inspection:
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Config-Path: agent-doctor.yaml
+```
+
+### Web UI Resolver Policy Editor
+
+Run the server to open the web dashboard:
+```bash
+soundcheck serve --port 3000
+```
+
+Navigate to **Resolver** in the web interface and click **Edit Policies** to open the `RoleConfigEditor`:
+- Displays active file path from `X-Config-Path` and schema version.
+- **Candidate Fallbacks per Role**: Edit candidate lists (e.g., `claude:claude-sonnet-5-5`, `codex:*`). Clicking live discovered account models automatically appends candidates.
+- **Policy Controls**:
+  - `require_distinct_vendor`: Forces primary and reviewer agents to run on different AI vendor infrastructures (e.g. Anthropic vs OpenAI).
+  - `max_cost_usd_per_run`: Numerical ceiling rejecting candidates exceeding token cost budget.
+  - `probe.ttl_minutes`: Probe cache duration for healthy adapter runs.
+- **Live Verification Badges**: Candidates show a green badge if verified, or a red badge with the failure reason (e.g. uninstalled binary, unauthenticated session, or unknown model ID).
+
+### Verify and Save Flow
+
+1. **Verify (`POST /api/v1/config/validate`)**:
+   - The UI evaluates candidates without altering files on disk.
+   - Probes live host CLIs and accounts in real time.
+   - Returns per-candidate validation records with exact error reasons when unverified.
+2. **Save (`PUT /api/v1/config`)**:
+   - Sends candidate mappings and policies to `/api/v1/config`.
+   - Validates schema, role definitions, and candidates.
+   - Atomically persists to disk using a temporary file with `0600` permissions and atomic rename.
+   - Returns HTTP `400 Bad Request` with error JSON if validation fails, preventing file corruption.
+
+### Real Example: `POST /api/v1/config/validate`
+
+Request:
+```bash
+curl -s -X POST http://127.0.0.1:3000/api/v1/config/validate \
+  -H "Content-Type: application/json" \
+  -d '{"roles":{"primary":["claude:claude-sonnet-5-5","unknown-agent:model-x","codex:bogus-model"]}}'
+```
+
+Real response:
+```json
+[
+  {
+    "role": "primary",
+    "candidate": "claude:claude-sonnet-5-5",
+    "verified": true
+  },
+  {
+    "role": "primary",
+    "candidate": "unknown-agent:model-x",
+    "verified": false,
+    "reason": "Unknown agent \"unknown-agent\"."
+  },
+  {
+    "role": "primary",
+    "candidate": "codex:bogus-model",
+    "verified": false,
+    "reason": "Model \"bogus-model\" is not offered by your OpenAI Codex account. Available: gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra, gpt-6-sol, gpt-6-luna, gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-daybreak-blue-latest, gpt-daybreak-red-latest, gpt-5.5, codex-auto-review."
+  }
+]
+```
+
+---
+
+## Live Model Discovery via `modelsCommand`
+
+Adapters can specify an optional `modelsCommand` in their YAML definition (e.g. `codex debug models` for Codex).
+
+- **With `modelsCommand`**: During adapter probing, Soundcheck executes this command against the CLI runner under a 10-second timeout. If successful (`exit 0`), Soundcheck parses live JSON output for models available to the authenticated account. Known models retain vendor-doc pricing/context metadata, while newly discovered models are surfaced with clean zero-invention metadata and marked as live.
+- **Without `modelsCommand` (or when command fails / CLI lacks command)**: For CLIs lacking dynamic discovery commands (such as Claude Code or Gemini CLI), Soundcheck preserves the curated static model catalog declared under `models:` in the adapter's YAML file.
+
+For full authoring details, see [Adapter Authoring Guide](docs/ADAPTER_AUTHORING.md).
+
+---
+
 ## Architecture
 
 Soundcheck follows a strict **Hexagonal Architecture** with a **Pure Functional Core** and an **Imperative Shell**:
