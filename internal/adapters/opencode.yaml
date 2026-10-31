@@ -53,10 +53,10 @@ probeSpecs:
   L2:
     level: L2
     command: "opencode run \"reply ok\" --format json"
-    timeoutMs: 6000
+    timeoutMs: 45000
     expectedExitCode: 0
   L3:
     level: L3
     command: "opencode run \"ping model\" --format json"
-    timeoutMs: 6000
+    timeoutMs: 90000
     expectedExitCode: 0

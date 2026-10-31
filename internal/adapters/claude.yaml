@@ -111,10 +111,10 @@ probeSpecs:
   L2:
     level: L2
     command: "claude -p \"reply with JSON {\\\"ok\\\":true}\" --output-format json"
-    timeoutMs: 6000
+    timeoutMs: 45000
     expectedExitCode: 0
   L3:
     level: L3
     command: "claude -p \"ping\" --output-format json"
-    timeoutMs: 6000
+    timeoutMs: 90000
     expectedExitCode: 0

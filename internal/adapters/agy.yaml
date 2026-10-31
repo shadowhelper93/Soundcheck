@@ -63,10 +63,10 @@ probeSpecs:
   L2:
     level: L2
     command: "agy -p \"reply with JSON {\\\"ok\\\":true}\""
-    timeoutMs: 6000
+    timeoutMs: 30000
     expectedExitCode: 0
   L3:
     level: L3
     command: "agy -p \"ping model\""
-    timeoutMs: 6000
+    timeoutMs: 90000
     expectedExitCode: 0

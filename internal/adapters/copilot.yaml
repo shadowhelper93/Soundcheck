@@ -68,11 +68,11 @@ probeSpecs:
     expectedExitCode: 0
   L2:
     level: L2
-    command: "copilot -p \"reply ok\" --output-format json -s"
-    timeoutMs: 6000
+    command: "copilot -p \"reply ok\" --model gpt-4o-copilot --output-format json -s"
+    timeoutMs: 45000
     expectedExitCode: 0
   L3:
     level: L3
-    command: "copilot -p \"ping model\" --output-format json -s"
-    timeoutMs: 6000
+    command: "copilot -p \"ping model\" --model gpt-4o-copilot --output-format json -s"
+    timeoutMs: 90000
     expectedExitCode: 0
