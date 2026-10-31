@@ -7,6 +7,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/soundcheck/soundcheck)](https://goreportcard.com/report/github.com/soundcheck/soundcheck)
 [![Release](https://img.shields.io/github/v/release/soundcheck/soundcheck)](https://github.com/soundcheck/soundcheck/releases)
 
+Translations: [Español](docs/i18n/README.es.md) · [Français](docs/i18n/README.fr.md) · [فارسی](docs/i18n/README.fa.md)
+
 Soundcheck tests your installed coding agent CLIs (`claude`, `codex`, `opencode`, `agy`, `gemini`, `copilot`) before you hand them tasks. It verifies availability, catches fake exit-zero errors, normalizes quirks, deterministically resolves role assignments without burning LLM tokens, and provides automated fallback cascading.
 
 ```
