@@ -26,6 +26,8 @@ Official Visual Studio Code & Antigravity IDE extension for **Soundcheck**: dete
 
 ## Commands
 
+The extension detects the Soundcheck CLI on startup. If it is missing, choose **Install CLI**, or run **Soundcheck: Install Soundcheck CLI** from the Command Palette. Select the operating system of the VS Code extension host; the installer downloads the latest published release and verifies its SHA-256 checksum before installation. A release must exist for that platform.
+
 | Command | Title |
 |---|---|
 | `soundcheck.doctor` | Run Doctor Preflight Check |

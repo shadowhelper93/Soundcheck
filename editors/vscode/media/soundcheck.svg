@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <mask id="mark">
+    <rect x="15" y="5" width="34" height="54" rx="17" fill="none" stroke="white" stroke-width="8"/>
+    <path d="M8 38 L24 52 L58 8" fill="none" stroke="black" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 38 L24 52 L58 8" fill="none" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </mask>
+  <rect width="64" height="64" fill="white" mask="url(#mark)"/>
+</svg>

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -39,6 +40,9 @@ func getFakeCLI(t testing.TB) string {
 			return
 		}
 		bin := filepath.Join(tmpDir, "fakecli")
+		if runtime.GOOS == "windows" {
+			bin += ".exe"
+		}
 		root := findModuleRoot(t)
 		// #nosec G204
 		cmd := exec.Command("go", "build", "-o", bin, filepath.Join(root, "testdata", "fakecli"))

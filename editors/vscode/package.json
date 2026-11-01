@@ -1,9 +1,10 @@
 {
   "name": "soundcheck",
   "displayName": "Soundcheck",
+  "icon": "media/icon.png",
   "description": "Preflight health check, role resolution, quirk immunity, and auto-failover for AI coding agents.",
-  "version": "2.0.0",
-  "publisher": "soundcheck",
+  "version": "2.0.1",
+  "publisher": "SinaMashini",
   "repository": {
     "type": "git",
     "url": "https://github.com/shadowhelper93/Soundcheck.git"
@@ -21,6 +22,11 @@
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "soundcheck.installCLI",
+        "title": "Install Soundcheck CLI",
+        "category": "Soundcheck"
+      },
       {
         "command": "soundcheck.doctor",
         "title": "Run Doctor Preflight Check",
@@ -68,7 +74,7 @@
         {
           "id": "soundcheck-explorer",
           "title": "Soundcheck",
-          "icon": "$(shield)"
+          "icon": "media/soundcheck.svg"
         }
       ]
     },

@@ -6,7 +6,7 @@ PATH := /opt/homebrew/bin:/usr/local/bin:/usr/local/go/bin:$(PATH)
 BIN_DIR := bin
 BINARY := $(BIN_DIR)/soundcheck
 RELEASE_DIR := $(BIN_DIR)/release
-VERSION ?= $(shell PATH="$(PATH)" git describe --tags --always --dirty 2>/dev/null || echo "v2.0.0")
+VERSION ?= $(shell PATH="$(PATH)" git describe --tags --always --dirty 2>/dev/null || echo "v2.0.1")
 
 GOPATH ?= $(shell PATH="$(PATH)" go env GOPATH 2>/dev/null || echo $(HOME)/go)
 GOLANGCI_LINT ?= $(shell PATH="$(PATH)" which golangci-lint 2>/dev/null || echo $(GOPATH)/bin/golangci-lint)

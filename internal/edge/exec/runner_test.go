@@ -189,7 +189,7 @@ func TestPipeRunner_ContextTimeout(t *testing.T) {
 	if !res.Killed {
 		t.Fatal("expected res.Killed true")
 	}
-	if res.ExitCode != -1 {
+	if runtime.GOOS != "windows" && res.ExitCode != -1 {
 		t.Fatalf("expected exit code -1, got %d", res.ExitCode)
 	}
 }

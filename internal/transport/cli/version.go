@@ -8,7 +8,7 @@ import (
 )
 
 // Version string for the Soundcheck CLI.
-var Version = "v2.0.0"
+var Version = "v2.0.1"
 
 func newVersionCmd(opts *RootOptions) *cobra.Command {
 	return &cobra.Command{

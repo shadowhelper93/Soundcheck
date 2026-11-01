@@ -48,7 +48,7 @@ func runUpgrade(ctx context.Context, cmd *cobra.Command, opts *upgradeOptions) e
 		return reportPackageManagerAdvice(cmd, pm)
 	}
 
-	rel, err := upgrade.FetchLatest(ctx, "soundcheck/soundcheck")
+	rel, err := upgrade.FetchLatest(ctx, "shadowhelper93/Soundcheck")
 	if err != nil {
 		return fmt.Errorf("check latest version: %w", err)
 	}

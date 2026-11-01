@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -37,6 +38,9 @@ func getE2EFakeCLI(t testing.TB) string {
 			return
 		}
 		bin := filepath.Join(tmpDir, "fakecli")
+		if runtime.GOOS == "windows" {
+			bin += ".exe"
+		}
 		root := findE2EModuleRoot(t)
 		// #nosec G204
 		cmd := exec.Command("go", "build", "-o", bin, filepath.Join(root, "testdata", "fakecli"))
@@ -182,7 +186,7 @@ func testConfigPutValidE2E(t *testing.T, server *transphttp.Server, cfgPath stri
 	if err != nil {
 		t.Fatalf("failed to stat persisted config file: %v", err)
 	}
-	if perm := info.Mode().Perm(); perm != 0o600 {
+	if perm := info.Mode().Perm(); runtime.GOOS != "windows" && perm != 0o600 {
 		t.Errorf("expected file mode 0600, got %#o", perm)
 	}
 

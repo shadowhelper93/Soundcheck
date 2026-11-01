@@ -38,6 +38,9 @@ func FetchLatest(ctx context.Context, repo string) (*ReleaseInfo, error) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, fmt.Errorf("no published release found for %s", repo)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("github api returned http %d", resp.StatusCode)
 	}
