@@ -170,6 +170,13 @@ func NewRootCmd(opts *RootOptions, a *app.App) *cobra.Command {
 
 	addPersistentFlags(cmd, opts)
 	addCommands(cmd, opts, a)
+	defaultHelp := cmd.HelpFunc()
+	cmd.SetHelpFunc(func(c *cobra.Command, args []string) {
+		if c == cmd && !opts.JSON && !opts.NDJSON {
+			_ = printTerminalLogo(c.OutOrStdout())
+		}
+		defaultHelp(c, args)
+	})
 	return cmd
 }
 

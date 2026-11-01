@@ -85,6 +85,9 @@ func outputDoctor(w io.Writer, opts *RootOptions, r app.DoctorReport) error {
 	if opts.NDJSON {
 		return outputDoctorNDJSON(w, r)
 	}
+	if err := printTerminalLogo(w); err != nil {
+		return err
+	}
 	return renderDoctorTable(w, r, isColorDisabled(opts))
 }
 
