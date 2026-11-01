@@ -30,7 +30,24 @@ export interface DetailedResolution {
   selectedModel: string;
   vendor: string;
   healthy: boolean;
-  reason: string;
+  reason?: string;
+  reasoning?: string;
+  estimatedCostPerM?: number;
+  fallbackChain?: string[];
+  steps?: Array<{
+    agentId: string;
+    candidate: string;
+    modelId: string;
+    status: string;
+    details: string;
+  }>;
+}
+
+export interface FixReport {
+  adapterId: string;
+  description: string;
+  remediationCmd: string;
+  success: boolean;
 }
 
 export interface ManifestSummary {

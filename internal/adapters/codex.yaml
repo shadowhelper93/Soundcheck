@@ -88,8 +88,8 @@ probeSpecs:
     expectedExitCode: 0
   L2:
     level: L2
-    command: "codex features list"
-    timeoutMs: 5000
+    command: "codex exec --skip-git-repo-check --sandbox read-only --json \"Reply OK. Do not use tools.\""
+    timeoutMs: 90000
     expectedExitCode: 0
   L3:
     level: L3

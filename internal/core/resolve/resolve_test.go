@@ -345,6 +345,51 @@ func TestResolveAuthFailure(t *testing.T) {
 	}
 }
 
+func mockL2Adapter(id, status string, errClass domain.ErrorClass) domain.Adapter {
+	return domain.Adapter{
+		ID:        id,
+		Installed: true,
+		Models:    []domain.ModelInfo{{ID: "m1"}},
+		Probes: map[domain.Tier]domain.ProbeResult{
+			domain.TierL0: {Status: "passed"},
+			domain.TierL1: {Status: "passed"},
+			domain.TierL2: {Status: status, ErrorClass: errClass, Message: "l2 result"},
+		},
+	}
+}
+
+func TestResolveL2SmokeFailure(t *testing.T) {
+	cfg := domain.Config{Version: 1, Roles: map[domain.Role][]string{
+		domain.RolePrimary: {"failed-l2:m1", "degraded-l2:m1", "unauth-l2:m1", "healthy-fallback:m1"},
+	}}
+	adapters := []domain.Adapter{
+		mockL2Adapter("failed-l2", "failed", domain.ErrorClassRateLimited),
+		mockL2Adapter("degraded-l2", "degraded", domain.ErrorClassTimeout),
+		mockL2Adapter("unauth-l2", "failed", domain.ErrorClassUnauthenticated),
+		mockL2Adapter("healthy-fallback", "passed", domain.ErrorClassOK),
+	}
+
+	res, err := resolve.ResolveRoles(cfg, adapters, time.Now())
+	if err != nil || !res[domain.RolePrimary].Healthy {
+		t.Fatalf("expected healthy primary via fallback, got %v (err: %v)", res[domain.RolePrimary].Healthy, err)
+	}
+	primary := res[domain.RolePrimary]
+	if primary.SelectedAgentID != "healthy-fallback" || len(primary.Steps) != 4 {
+		t.Fatalf("unexpected resolution: id=%s steps=%d", primary.SelectedAgentID, len(primary.Steps))
+	}
+	wantStatuses := []domain.StepStatus{
+		domain.StepStatusSkippedCooldown,
+		domain.StepStatusSkippedCooldown,
+		domain.StepStatusSkippedUnauth,
+		domain.StepStatusSelected,
+	}
+	for i, want := range wantStatuses {
+		if primary.Steps[i].Status != want {
+			t.Errorf("step %d status got %s, want %s", i, primary.Steps[i].Status, want)
+		}
+	}
+}
+
 func TestResolveEmptyCandidates(t *testing.T) {
 	cfg := domain.Config{
 		Version: 1,

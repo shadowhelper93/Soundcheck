@@ -31,6 +31,8 @@ Official Visual Studio Code & Antigravity IDE extension for **Soundcheck**: dete
 | `soundcheck.doctor` | Run Doctor Preflight Check |
 | `soundcheck.resolve` | Resolve Agent Roles |
 | `soundcheck.exec` | Execute Prompt with Auto-Failover |
+| `soundcheck.fix` | Remediate Broken Adapter |
+| `soundcheck.check` | Discover Alternative Fallbacks |
 | `soundcheck.openDashboard` | Open Visual Dashboard |
 | `soundcheck.openTerminal` | Open Interactive Adapter Terminal |
 | `soundcheck.refresh` | Refresh Health Status |

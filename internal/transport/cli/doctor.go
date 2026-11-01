@@ -28,10 +28,9 @@ func newDoctorCmd(opts *RootOptions, injected *app.App) *cobra.Command {
 				return err
 			}
 
-			if deep {
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), deepProbeWarning)
-			}
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "warning: live smoke probes may use provider quota or incur charges")
 			dopts := buildDoctorOptions(deep, force)
+			dopts = append(dopts, app.WithDoctorSmoke())
 			report, err := a.Doctor(ctx, dopts...)
 			if err != nil {
 				return &ExitError{Code: ExitFailed, Err: err}
@@ -209,6 +208,9 @@ func isAdapterFunctional(ad domain.Adapter) bool {
 
 func adapterStatus(ad domain.Adapter, noColor bool) string {
 	h := domain.EvalHealth(ad)
+	auth, _ := tierGlyph(ad.Probes[domain.TierL1], true)
+	live, _ := tierGlyph(ad.Probes[domain.TierL2], true)
+	checks := fmt.Sprintf("AUTH:%s LIVE:%s", auth, live)
 	switch h.Status {
 	case domain.AdapterHealthUnavailable:
 		if !ad.Installed {
@@ -218,18 +220,18 @@ func adapterStatus(ad domain.Adapter, noColor bool) string {
 			return "\x1b[31mNOT FOUND\x1b[0m"
 		}
 		if noColor {
-			return "DEGRADED " + h.Reason
+			return checks + " DEGRADED " + h.Reason
 		}
-		return "\x1b[31mDEGRADED\x1b[0m " + h.Reason
+		return checks + " \x1b[31mDEGRADED\x1b[0m " + h.Reason
 	case domain.AdapterHealthDegraded:
 		if noColor {
-			return "DEGRADED " + h.Reason
+			return checks + " DEGRADED " + h.Reason
 		}
-		return "\x1b[33mDEGRADED\x1b[0m " + h.Reason
+		return checks + " \x1b[33mDEGRADED\x1b[0m " + h.Reason
 	default:
 		if noColor {
-			return "OK"
+			return checks
 		}
-		return "\x1b[32mOK\x1b[0m"
+		return checks
 	}
 }

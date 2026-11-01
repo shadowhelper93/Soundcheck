@@ -23,6 +23,12 @@ type DoctorReport struct {
 type doctorOptions struct {
 	deep      bool
 	forceLive bool
+	smoke     bool
+}
+
+// WithDoctorSmoke runs the L2 smoke probes.
+func WithDoctorSmoke() DoctorOption {
+	return func(o *doctorOptions) { o.smoke = true }
 }
 
 // DoctorOption configures Doctor execution.
@@ -47,6 +53,9 @@ func (a *App) Doctor(ctx context.Context, opts ...DoctorOption) (DoctorReport, e
 
 	cfg := a.Config()
 	var probeOpts []probe.ProbeOption
+	if dopts.smoke {
+		probeOpts = append(probeOpts, probe.WithCallMaxTier(domain.TierL2), probe.WithCallSkipCache(true))
+	}
 	if dopts.deep || cfg.Policy.Probe.Deep {
 		probeOpts = append(probeOpts, probe.WithCallMaxTier(domain.TierL3))
 	}

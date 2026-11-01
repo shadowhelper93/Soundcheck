@@ -107,6 +107,7 @@ type ProbeResult struct {
 	Status      string      `json:"status"`
 	ErrorClass  ErrorClass  `json:"errorClass"`
 	Message     string      `json:"message"`
+	BackoffMin  int         `json:"backoffMin,omitempty"`
 	Timestamp   int64       `json:"timestamp,omitempty"`
 	CachedUntil int64       `json:"cachedUntil,omitempty"`
 	LatencyMs   float64     `json:"latencyMs,omitempty"`

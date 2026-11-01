@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/soundcheck/soundcheck/internal/core/domain"
+	"github.com/soundcheck/soundcheck/internal/edge/probe"
 )
 
 // VerifiedAlternative describes an alternative provider verified and ready to run the requested model.
@@ -28,7 +29,7 @@ func (a *App) FindAlternativesForModel(ctx context.Context, failedProvider strin
 			continue
 		}
 
-		adapter, err := a.ProbeOne(ctx, providerID)
+		adapter, err := a.probeAuthOnly(ctx, providerID)
 		if err != nil || !adapter.Installed {
 			continue
 		}
@@ -48,4 +49,13 @@ func (a *App) FindAlternativesForModel(ctx context.Context, failedProvider strin
 	}
 
 	return alternatives, nil
+}
+
+// probeAuthOnly probes L0..L1 only, skipping expensive L2/L3 smoke tests.
+func (a *App) probeAuthOnly(ctx context.Context, adapterID string) (domain.Adapter, error) {
+	def, ok := a.defs[adapterID]
+	if !ok {
+		return domain.Adapter{}, fmt.Errorf("unknown adapter: %s", adapterID)
+	}
+	return a.prober.ProbeAdapter(ctx, def, probe.WithCallMaxTier(domain.TierL1)), nil
 }

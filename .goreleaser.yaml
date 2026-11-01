@@ -55,10 +55,11 @@ changelog:
 
 brews:
   - repository:
-      owner: soundcheck
+      owner: shadowhelper93
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
-    homepage: "https://github.com/soundcheck/soundcheck"
+    homepage: "https://github.com/shadowhelper93/Soundcheck"
     description: "Adaptive multi-CLI coding agent orchestrator with automatic failover"
     license: "Apache-2.0"
     test: |

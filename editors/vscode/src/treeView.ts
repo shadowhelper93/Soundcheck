@@ -103,7 +103,7 @@ export class RolesTreeProvider implements vscode.TreeDataProvider<vscode.TreeIte
         );
         item.description = res.healthy ? 'HEALTHY' : 'UNHEALTHY';
         item.iconPath = new vscode.ThemeIcon(res.healthy ? 'verified' : 'unverified');
-        item.tooltip = res.reason;
+        item.tooltip = res.reasoning || res.reason || '';
         return item;
       })
     );
@@ -128,6 +128,18 @@ export class ActionsTreeProvider implements vscode.TreeDataProvider<vscode.TreeI
         cmd: 'soundcheck.exec',
         icon: 'play',
         tooltip: 'Run prompt through healthy resolved agent with auto-failover',
+      },
+      {
+        label: 'Remediate Broken Adapter (Fix)',
+        cmd: 'soundcheck.fix',
+        icon: 'tools',
+        tooltip: 'Remediate and repair broken or unauthenticated agent adapters',
+      },
+      {
+        label: 'Discover Alternative Fallbacks',
+        cmd: 'soundcheck.check',
+        icon: 'search',
+        tooltip: 'Inspect provider and automatically discover verified alternative fallbacks',
       },
       {
         label: 'Resolve Agent Roles',

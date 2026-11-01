@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { DoctorReport, DetailedResolution, RunPromptResult } from './types';
+import { DoctorReport, DetailedResolution, RunPromptResult, FixReport } from './types';
 
 export class SoundcheckCLI {
   public static resolveBinary(): string {
@@ -46,6 +46,19 @@ export class SoundcheckCLI {
 
     const stdout = await this.execute(args);
     return JSON.parse(stdout) as RunPromptResult;
+  }
+
+  public static async runFix(adapter: string): Promise<FixReport> {
+    const stdout = await this.execute(['fix', adapter, '--json']);
+    return JSON.parse(stdout) as FixReport;
+  }
+
+  public static async runCheckAlternatives(provider: string, model?: string): Promise<string> {
+    const args = ['check', provider];
+    if (model) {
+      args.push('-m', model);
+    }
+    return await this.execute(args);
   }
 
   public static execute(args: string[]): Promise<string> {

@@ -190,6 +190,9 @@ func runCandidateChecks(adapter domain.Adapter, cand candidate, role domain.Role
 	if step, fb, pass := checkAuth(adapter, cand); !pass {
 		return step, fb, false
 	}
+	if step, fb, pass := checkSmokeTest(adapter, cand); !pass {
+		return step, fb, false
+	}
 	if step, fb, pass := checkVendorConflict(adapter, cand, role, ctx); !pass {
 		return step, fb, false
 	}
@@ -259,6 +262,34 @@ func checkAuth(adapter domain.Adapter, cand candidate) (domain.ResolverStep, str
 		Details:   "L1 Auth check failed: credentials invalid or missing.",
 	}
 	return step, cand.raw + " (unauthenticated)", false
+}
+
+func checkSmokeTest(adapter domain.Adapter, cand candidate) (domain.ResolverStep, string, bool) {
+	l2, hasL2 := adapter.Probes[domain.TierL2]
+	if !hasL2 || (l2.Status != "failed" && l2.Status != "degraded") {
+		return domain.ResolverStep{}, "", true
+	}
+	status := domain.StepStatusSkippedCooldown
+	tag := "cooldown"
+	if l2.ErrorClass == domain.ErrorClassUnauthenticated {
+		status = domain.StepStatusSkippedUnauth
+		tag = "unauthenticated"
+	}
+	msg := l2.Message
+	if msg == "" {
+		msg = string(l2.ErrorClass)
+	}
+	if msg == "" {
+		msg = "command failed"
+	}
+	step := domain.ResolverStep{
+		Candidate: cand.raw,
+		AgentID:   adapter.ID,
+		ModelID:   candidateModelID(cand.modelSpec),
+		Status:    status,
+		Details:   fmt.Sprintf("L2 Smoke test failed: %s", msg),
+	}
+	return step, cand.raw + " (" + tag + ")", false
 }
 
 func checkVendorConflict(adapter domain.Adapter, cand candidate, role domain.Role, ctx *resolveContext) (domain.ResolverStep, string, bool) {

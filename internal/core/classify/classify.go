@@ -83,10 +83,20 @@ func classifyClaudeError(raw domain.RawOutput, jm map[string]any) (domain.Classi
 	errMap, _ := jm["error"].(map[string]any)
 	errType, _ := errMap["type"].(string)
 	errMsg, _ := errMap["message"].(string)
+	if errMsg == "" {
+		if res, ok := jm["result"].(string); ok && res != "" {
+			errMsg = res
+		}
+	}
 
+	lowerMsg := strings.ToLower(errMsg)
 	isRate := strings.Contains(errType, "rate_limit") ||
-		strings.Contains(strings.ToLower(errMsg), "quota") ||
-		strings.Contains(errMsg, "5-hour")
+		strings.Contains(lowerMsg, "quota") ||
+		strings.Contains(lowerMsg, "5-hour") ||
+		strings.Contains(lowerMsg, "rate limit") ||
+		strings.Contains(lowerMsg, "rate_limit") ||
+		strings.Contains(lowerMsg, "[429]") ||
+		strings.Contains(raw.Stdout, "rate_limit")
 
 	if isRate {
 		return domain.Classification{
@@ -98,8 +108,12 @@ func classifyClaudeError(raw domain.RawOutput, jm map[string]any) (domain.Classi
 			QuirkID:    "claude-79500",
 		}, true
 	}
+	errClass := domain.ErrorClassUnauthenticated
+	if errMsg != "" && !strings.Contains(lowerMsg, "auth") && !strings.Contains(lowerMsg, "key") && !strings.Contains(lowerMsg, "login") {
+		errClass = domain.ErrorClassCorruptedState
+	}
 	return domain.Classification{
-		ErrorClass: domain.ErrorClassUnauthenticated,
+		ErrorClass: errClass,
 		Reason:     fmt.Sprintf("Claude returned exit 0 with is_error: true - %s", errMsg),
 		CaughtLie:  raw.ExitCode == 0,
 	}, true

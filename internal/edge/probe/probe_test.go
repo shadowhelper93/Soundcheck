@@ -2,6 +2,7 @@ package probe_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -229,6 +230,9 @@ func TestProbeStopOnFailL2QuirkRateLimit(t *testing.T) {
 	if ad.Probes[domain.TierL2].ErrorClass != domain.ErrorClassRateLimited {
 		t.Errorf("expected L2 rate_limited, got %s", ad.Probes[domain.TierL2].ErrorClass)
 	}
+	if ad.CooldownUntil == nil || *ad.CooldownUntil <= time.Now().UnixMilli() {
+		t.Errorf("expected CooldownUntil set in future, got %v", ad.CooldownUntil)
+	}
 	if ad.Probes[domain.TierL3].Status != "pending" {
 		t.Errorf("expected L3 pending, got %s", ad.Probes[domain.TierL3].Status)
 	}
@@ -426,5 +430,33 @@ func TestProbeDeepFailNotCached(t *testing.T) {
 
 	if r.count() <= first {
 		t.Fatalf("failed deep probe must not be cached; calls first=%d total=%d", first, r.count())
+	}
+}
+
+func TestProbeL1CapHonorsCachedL2RateLimit(t *testing.T) {
+	cache := store.NewTTLCache(nil)
+	r := &recordingRunner{}
+	p := probe.New(probe.WithRunner(r), probe.WithCache(cache), probe.WithMaxTier(domain.TierL1))
+	def := costDef()
+
+	// Pre-seed cache with an L2 rate limit failure valid for 30 minutes
+	key := fmt.Sprintf("probe:%s:%s", def.ID, domain.TierL2)
+	cached := domain.ProbeResult{
+		Level:       domain.TierL2,
+		Status:      "failed",
+		ErrorClass:  domain.ErrorClassRateLimited,
+		Message:     "rate limit reached",
+		BackoffMin:  30,
+		CachedUntil: time.Now().Add(30 * time.Minute).UnixMilli(),
+	}
+	data, _ := json.Marshal(cached)
+	_ = cache.Set(key, data, 30*time.Minute)
+
+	ad := p.ProbeAdapter(context.Background(), def)
+	if ad.CooldownUntil == nil || *ad.CooldownUntil <= time.Now().UnixMilli() {
+		t.Fatalf("expected CooldownUntil populated from cached L2 rate limit")
+	}
+	if ad.Probes[domain.TierL2].ErrorClass != domain.ErrorClassRateLimited {
+		t.Fatalf("expected L2 probe to reflect cached rate limit, got %s", ad.Probes[domain.TierL2].ErrorClass)
 	}
 }

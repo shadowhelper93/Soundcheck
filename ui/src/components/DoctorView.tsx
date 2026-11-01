@@ -44,6 +44,17 @@ export const DoctorView: React.FC<DoctorViewProps> = ({
 
   return (
     <div className="space-y-6">
+      <section aria-labelledby="getting-started" className="p-5 rounded-xl bg-[#121721] border border-[#1E2638] space-y-3">
+        <h2 id="getting-started" className="text-base font-bold text-[#E6EAF2]">Get started with Soundcheck</h2>
+        <p className="text-sm text-[#8B95A7]">Run these commands in your system terminal after installing the Soundcheck CLI.</p>
+        <ol className="list-decimal list-inside space-y-2 text-sm text-[#E6EAF2]">
+          <li><code>soundcheck doctor</code> — check installed agents and authentication.</li>
+          <li><code>soundcheck resolve</code> — see which agent is selected for each role.</li>
+          <li><code>soundcheck exec "Your task"</code> — send a task to the selected agent. Provider charges may apply.</li>
+          <li><code>soundcheck serve</code> — open the dashboard at the address printed in your terminal.</li>
+        </ol>
+        <p className="text-xs text-[#8B95A7]">For all commands and options, run <code>soundcheck --help</code> or <code>soundcheck &lt;command&gt; --help</code>.</p>
+      </section>
       {/* Hero Banner with the Tier Meter & Tagline from Ladder.dc.html */}
       <div className="p-6 md:p-8 rounded-2xl bg-[#121721] border border-[#1E2638] glow-card flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center gap-6 z-10 text-center sm:text-left">

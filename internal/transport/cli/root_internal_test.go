@@ -3,8 +3,22 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
+
+	"github.com/soundcheck/soundcheck/internal/core/domain"
 )
+
+func TestAdapterStatusShowsLiveProbe(t *testing.T) {
+	ad := domain.Adapter{Installed: true, Probes: map[domain.Tier]domain.ProbeResult{
+		domain.TierL1: {Status: "passed"},
+		domain.TierL2: {Status: "failed", ErrorClass: domain.ErrorClassRateLimited, Message: "quota exhausted"},
+	}}
+	got := adapterStatus(ad, true)
+	if !strings.Contains(got, "AUTH:✓") || !strings.Contains(got, "LIVE:✖") || !strings.Contains(got, "quota exhausted") {
+		t.Fatalf("missing distinct probe results: %s", got)
+	}
+}
 
 func TestExtractExitCode(t *testing.T) {
 	cases := []struct {

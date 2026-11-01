@@ -4,16 +4,108 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/soundcheck/soundcheck/internal/adapters"
 	"github.com/soundcheck/soundcheck/internal/app"
+	"github.com/soundcheck/soundcheck/internal/core/domain"
+	edgeExec "github.com/soundcheck/soundcheck/internal/edge/exec"
+	"github.com/soundcheck/soundcheck/internal/edge/store"
 	"github.com/soundcheck/soundcheck/internal/transport/mcp"
 )
 
+var (
+	fakecliOnce sync.Once
+	fakecliPath string
+	fakecliErr  error
+)
+
+func getFakeCLI(t testing.TB) string {
+	t.Helper()
+	fakecliOnce.Do(func() {
+		tmpDir, err := os.MkdirTemp("", "fakecli-mcp-*")
+		if err != nil {
+			fakecliErr = err
+			return
+		}
+		bin := filepath.Join(tmpDir, "fakecli")
+		root := findModuleRoot(t)
+		// #nosec G204
+		cmd := exec.Command("go", "build", "-o", bin, filepath.Join(root, "testdata", "fakecli"))
+		if out, err := cmd.CombinedOutput(); err != nil {
+			fakecliErr = fmt.Errorf("build fakecli: %w: %s", err, string(out))
+			return
+		}
+		fakecliPath = bin
+	})
+	if fakecliErr != nil {
+		t.Fatalf("failed to build fakecli: %v", fakecliErr)
+	}
+	return fakecliPath
+}
+
+func findModuleRoot(t testing.TB) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			t.Fatal("could not locate go.mod")
+		}
+		dir = parent
+	}
+}
+
+func testDefinitions(bin string) []adapters.Definition {
+	agentIDs := []string{"claude", "codex", "opencode", "agy", "gemini", "copilot"}
+	defs := make([]adapters.Definition, len(agentIDs))
+
+	for i, id := range agentIDs {
+		orig, _ := adapters.Get(id)
+		defs[i] = adapters.Definition{
+			Adapter: domain.Adapter{
+				ID:              id,
+				Name:            orig.Name,
+				Vendor:          orig.Vendor,
+				Binary:          bin,
+				Category:        orig.Category,
+				Models:          orig.Models,
+				HeadlessCommand: bin,
+			},
+			ProbeSpecs: map[domain.Tier]domain.Probe{
+				domain.TierL0: {Level: domain.TierL0, Command: bin + " --version"},
+				domain.TierL1: {Level: domain.TierL1, Command: bin},
+				domain.TierL2: {Level: domain.TierL2, Command: bin},
+				domain.TierL3: {Level: domain.TierL3, Command: bin},
+			},
+		}
+	}
+	return defs
+}
+
 func runMCPExchange(t *testing.T, input string) []mcp.Response {
 	t.Helper()
-	appInstance, err := app.New()
+	bin := getFakeCLI(t)
+	defs := testDefinitions(bin)
+	runner := edgeExec.NewPipeRunner()
+	cache := store.NewTTLCache(nil)
+	appInstance, err := app.New(
+		app.WithRunner(runner),
+		app.WithCache(cache),
+		app.WithDefinitions(defs),
+	)
 	if err != nil {
 		t.Fatalf("failed to create app: %v", err)
 	}

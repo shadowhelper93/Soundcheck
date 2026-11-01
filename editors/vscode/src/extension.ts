@@ -47,6 +47,51 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
 
+  const runFix = async (): Promise<void> => {
+    const choice = await vscode.window.showQuickPick(
+      ['claude', 'codex', 'opencode', 'agy', 'gemini', 'copilot'],
+      { placeHolder: 'Select CLI adapter to remediate' }
+    );
+    if (!choice) return;
+
+    try {
+      const report = await SoundcheckCLI.runFix(choice);
+      const action = await vscode.window.showInformationMessage(
+        `Soundcheck Fix (${choice}): ${report.description}`,
+        'Run Command in Terminal',
+        'Dismiss'
+      );
+      if (action === 'Run Command in Terminal') {
+        const term = vscode.window.createTerminal(`Soundcheck Fix: ${choice}`);
+        term.sendText(report.remediationCmd);
+        term.show();
+      }
+    } catch (err: any) {
+      vscode.window.showErrorMessage(`Soundcheck Fix Error: ${err?.message || err}`);
+    }
+  };
+
+  const runCheck = async (): Promise<void> => {
+    const provider = await vscode.window.showQuickPick(
+      ['claude', 'codex', 'opencode', 'agy', 'gemini', 'copilot'],
+      { placeHolder: 'Select provider to discover alternative fallbacks' }
+    );
+    if (!provider) return;
+
+    outputChannel.show(true);
+    outputChannel.appendLine(`=======================================================`);
+    outputChannel.appendLine(`Soundcheck: Checking fallback alternatives for ${provider}...`);
+    try {
+      const out = await SoundcheckCLI.runCheckAlternatives(provider);
+      outputChannel.appendLine(out);
+      outputChannel.appendLine(`=======================================================`);
+      vscode.window.showInformationMessage(`Soundcheck: Checked alternatives for ${provider}. See output channel.`);
+    } catch (err: any) {
+      outputChannel.appendLine(`Error: ${err?.message || err}`);
+      vscode.window.showErrorMessage(`Soundcheck Check Error: ${err?.message || err}`);
+    }
+  };
+
   const openTerminal = async (): Promise<void> => {
     const choice = await vscode.window.showQuickPick(
       ['claude', 'codex', 'opencode', 'agy', 'gemini', 'copilot'],
@@ -68,6 +113,8 @@ export function activate(context: vscode.ExtensionContext): void {
       [
         { label: '$(pulse) Run Doctor Preflight Check', cmd: 'soundcheck.doctor' },
         { label: '$(play) Execute Prompt with Auto-Failover', cmd: 'soundcheck.exec' },
+        { label: '$(tools) Remediate Broken Adapter (Fix)', cmd: 'soundcheck.fix' },
+        { label: '$(search) Discover Alternative Fallbacks', cmd: 'soundcheck.check' },
         { label: '$(references) Resolve Agent Roles', cmd: 'soundcheck.resolve' },
         { label: '$(browser) Open Web Dashboard', cmd: 'soundcheck.openDashboard' },
         { label: '$(terminal) Open Interactive PTY Terminal', cmd: 'soundcheck.openTerminal' },
@@ -86,6 +133,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('soundcheck.doctor', () => runDoctor(false)),
     vscode.commands.registerCommand('soundcheck.resolve', runResolve),
     vscode.commands.registerCommand('soundcheck.exec', () => promptAndExecute(outputChannel)),
+    vscode.commands.registerCommand('soundcheck.fix', runFix),
+    vscode.commands.registerCommand('soundcheck.check', runCheck),
     vscode.commands.registerCommand('soundcheck.openDashboard', () => DashboardWebview.open(context)),
     vscode.commands.registerCommand('soundcheck.openTerminal', openTerminal),
     vscode.commands.registerCommand('soundcheck.refresh', () => runDoctor(false)),

@@ -93,6 +93,28 @@ func TestClassifyGoldenFixturesParity(t *testing.T) {
 	}
 }
 
+func TestClassifyClaudeResultRateLimit(t *testing.T) {
+	quirks := classify.DefaultQuirks()
+	raw := domain.RawOutput{
+		AgentID:  "claude",
+		ExitCode: 0,
+		Stdout:   `{"is_error":true,"subtype":"success","api_error_status":503,"result":"API Error: 503 [claude/claude-opus-5-5] [429]: rate_limit_error: This request would exceed your account's rate limit."}`,
+	}
+	got := classify.Classify(raw, quirks)
+	if got.Rewritten != 429 {
+		t.Errorf("expected Rewritten=429, got %d", got.Rewritten)
+	}
+	if got.BackoffMin != 30 {
+		t.Errorf("expected BackoffMin=30, got %d", got.BackoffMin)
+	}
+	if got.ErrorClass != domain.ErrorClassRateLimited {
+		t.Errorf("expected rate_limited, got %s", got.ErrorClass)
+	}
+	if !got.CaughtLie {
+		t.Errorf("expected CaughtLie=true")
+	}
+}
+
 func TestClassifyQuirkRewrites(t *testing.T) {
 	quirks := classify.DefaultQuirks()
 

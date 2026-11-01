@@ -244,6 +244,7 @@ func evaluateTurnResult(
 			Status:     "failed",
 			ErrorClass: errClass,
 			Message:    msg,
+			BackoffMin: cl.BackoffMin,
 			LatencyMs:  latency,
 			Timestamp:  now,
 			RawDetails: details,
@@ -292,10 +293,22 @@ func (p *Prober) ProbeTier(
 		res = ProbeL3(ctx, p.runner, adapter, spec)
 	}
 
-	if p.cache != nil && p.ttl > 0 && res.Status == "passed" {
-		res.CachedUntil = time.Now().Add(p.ttl).UnixMilli()
-		if data, err := json.Marshal(res); err == nil {
-			_ = p.cache.Set(key, data, p.ttl)
+	if p.cache != nil {
+		if p.ttl > 0 && res.Status == "passed" {
+			res.CachedUntil = time.Now().Add(p.ttl).UnixMilli()
+			if data, err := json.Marshal(res); err == nil {
+				_ = p.cache.Set(key, data, p.ttl)
+			}
+		} else if res.ErrorClass == domain.ErrorClassRateLimited || res.BackoffMin > 0 {
+			backoff := res.BackoffMin
+			if backoff <= 0 {
+				backoff = 30
+			}
+			ttl := time.Duration(backoff) * time.Minute
+			res.CachedUntil = time.Now().Add(ttl).UnixMilli()
+			if data, err := json.Marshal(res); err == nil {
+				_ = p.cache.Set(key, data, ttl)
+			}
 		}
 	}
 
@@ -310,6 +323,11 @@ func (p *Prober) ProbeAdapter(ctx context.Context, def adapters.Definition, opts
 
 	for _, tier := range tiers {
 		if tierIndex(tier) > tierIndex(cfg.maxTier) {
+			if cached, ok := p.getCachedRateLimit(ad, tier); ok {
+				ad.Probes[tier] = cached
+				p.applyBackoffCooldown(&ad, cached)
+				continue
+			}
 			ad.Probes[tier] = skippedProbe(tier)
 			continue
 		}
@@ -324,6 +342,7 @@ func (p *Prober) ProbeAdapter(ctx context.Context, def adapters.Definition, opts
 		}
 
 		if res.Status != "passed" {
+			p.applyBackoffCooldown(&ad, res)
 			p.skipSubsequentTiers(&ad, tier, tiers)
 			break
 		}
@@ -338,6 +357,40 @@ func (p *Prober) skipSubsequentTiers(ad *domain.Adapter, currentTier domain.Tier
 			ad.Probes[t] = skippedProbe(t)
 		}
 	}
+}
+
+func (p *Prober) applyBackoffCooldown(ad *domain.Adapter, res domain.ProbeResult) {
+	if res.ErrorClass == domain.ErrorClassRateLimited || res.BackoffMin > 0 {
+		if res.CachedUntil > time.Now().UnixMilli() {
+			ad.CooldownUntil = &res.CachedUntil
+			return
+		}
+		backoff := res.BackoffMin
+		if backoff <= 0 {
+			backoff = 30
+		}
+		cooldown := time.Now().Add(time.Duration(backoff) * time.Minute).UnixMilli()
+		ad.CooldownUntil = &cooldown
+	}
+}
+
+func (p *Prober) getCachedRateLimit(adapter domain.Adapter, tier domain.Tier) (domain.ProbeResult, bool) {
+	if p.cache == nil {
+		return domain.ProbeResult{}, false
+	}
+	key := fmt.Sprintf("probe:%s:%s", adapter.ID, tier)
+	data, ok, err := p.cache.Get(key)
+	if err != nil || !ok {
+		return domain.ProbeResult{}, false
+	}
+	var cached domain.ProbeResult
+	if err := json.Unmarshal(data, &cached); err != nil {
+		return domain.ProbeResult{}, false
+	}
+	if (cached.ErrorClass == domain.ErrorClassRateLimited || cached.BackoffMin > 0) && cached.CachedUntil > time.Now().UnixMilli() {
+		return cached, true
+	}
+	return domain.ProbeResult{}, false
 }
 
 func (p *Prober) updateL0Details(ad *domain.Adapter, res domain.ProbeResult) {

@@ -254,8 +254,6 @@ func costAwareProberOptions(ttl time.Duration) []app.Option {
 
 const (
 	defaultProbeTTL = 30 * time.Minute
-	// deepProbeWarning is printed before any L2/L3 probe runs, since each one invokes a paid model.
-	deepProbeWarning = "warning: deep probes call real models and may cost money"
 )
 
 func probeCacheStore() store.Store {

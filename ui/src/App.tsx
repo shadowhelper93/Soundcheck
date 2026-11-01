@@ -11,7 +11,16 @@ import { INITIAL_ADAPTERS } from './core/adapters/adapterRegistry';
 import { DEFAULT_CONFIG, resolveRoles } from './core/engine/resolver';
 import { generateCapabilityManifest } from './core/engine/manifestGenerator';
 import { AgentAdapter, ProbeLevel, SoundcheckConfig } from './types/soundcheck';
-import { Terminal, ChevronUp, ChevronDown } from 'lucide-react';
+import { Terminal, ChevronUp, ChevronDown, Info } from 'lucide-react';
+
+const sectionHelp: Record<ActiveTab, { title: string; text: string }> = {
+  doctor: { title: 'Doctor', text: 'Run Soundcheck to check agent availability and authentication. Select a probe card to inspect its result; deeper probes can make live provider requests.' },
+  resolver: { title: 'Resolver', text: 'Review agent choices for each role and their fallback order. Use Edit Policies to change candidates; use the live API response or soundcheck resolve to check the backend result.' },
+  workflow: { title: 'DAG Studio', text: 'Explore workflow patterns, their stages and dependencies, and copy their YAML. Stage execution is not implemented by the current server.' },
+  quirks: { title: 'Quirk Lab', text: 'Choose an example, edit the output and exit code, then run the classifier to see how it interprets the result.' },
+  manifest: { title: 'Manifest', text: 'Inspect agent capabilities and role assignments. Select a format to copy or download it; the manifest uses the live server response when available.' },
+  settings: { title: 'Settings', text: 'Change the app font, terminal font and size, or accent color. These appearance preferences are saved in this browser.' },
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('doctor');
@@ -214,6 +223,13 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
+          <details key={activeTab} className="rounded-xl bg-[#121721] border border-[#1E2638] text-sm text-[#E6EAF2]">
+            <summary className="flex items-center gap-2 p-3 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#10B981]">
+              <Info aria-hidden="true" className="w-4 h-4" style={{ color: accentColor }} />
+              <span>About {sectionHelp[activeTab].title}</span>
+            </summary>
+            <p className="px-4 pb-4 leading-relaxed text-[#AEB8C8]">{sectionHelp[activeTab].text}</p>
+          </details>
           {activeTab === 'doctor' && (
             <DoctorView
               adapters={adapters}
@@ -268,6 +284,13 @@ export default function App() {
 
           {/* Real Interactive Subprocess Terminal Console */}
           <div className="pt-2">
+            <details className="mb-2 rounded-xl bg-[#121721] border border-[#1E2638] text-sm text-[#E6EAF2]">
+              <summary className="flex items-center gap-2 p-3 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#10B981]">
+                <Info aria-hidden="true" className="w-4 h-4" style={{ color: accentColor }} />
+                <span>About the terminal</span>
+              </summary>
+              <p className="px-4 pb-4 leading-relaxed text-[#AEB8C8]">Run commands on the machine hosting Soundcheck. Use the quick commands or type a command and press Enter.</p>
+            </details>
             <div className="flex items-center justify-between pb-2 font-mono text-xs text-[#8B95A7]">
               <span className="flex items-center gap-1.5 font-bold text-[#E6EAF2]">
                 <Terminal className="w-3.5 h-3.5" style={{ color: accentColor }} />
