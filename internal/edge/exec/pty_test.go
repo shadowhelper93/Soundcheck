@@ -78,6 +78,9 @@ func TestPTYRunner_InteractivePrompt(t *testing.T) {
 }
 
 func TestPTYRunner_Resize(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("pty resize signals not supported on windows")
+	}
 	defer goleak.VerifyNone(t)
 
 	bin := buildFakeCLI(t)
