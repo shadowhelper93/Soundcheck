@@ -4,8 +4,10 @@ import { SoundcheckStatusBar } from './statusBar';
 import { AdaptersTreeProvider, RolesTreeProvider, ActionsTreeProvider } from './treeView';
 import { promptAndExecute } from './execCommand';
 import { DashboardWebview } from './dashboardWebview';
+import { installCLI } from './install';
 
 export function activate(context: vscode.ExtensionContext): void {
+  SoundcheckCLI.installedPath = context.globalState.get<string>('installedCLI');
   const outputChannel = vscode.window.createOutputChannel('Soundcheck Execution');
   const statusBar = new SoundcheckStatusBar();
 
@@ -130,6 +132,14 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     statusBar,
     outputChannel,
+    vscode.commands.registerCommand('soundcheck.installCLI', async () => {
+      try {
+        await installCLI(context);
+        SoundcheckCLI.installedPath = context.globalState.get<string>('installedCLI');
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Soundcheck installation failed: ${err?.message || err}`);
+      }
+    }),
     vscode.commands.registerCommand('soundcheck.doctor', () => runDoctor(false)),
     vscode.commands.registerCommand('soundcheck.resolve', runResolve),
     vscode.commands.registerCommand('soundcheck.exec', () => promptAndExecute(outputChannel)),
@@ -142,9 +152,14 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const autoDoctor = vscode.workspace.getConfiguration('soundcheck').get<boolean>('autoDoctorOnStartup');
-  if (autoDoctor) {
-    runDoctor(true);
-  }
+  void SoundcheckCLI.isAvailable().then(async available => {
+    if (available && autoDoctor) return runDoctor(true);
+    if (!available) {
+      statusBar.setError('CLI not found');
+      const action = await vscode.window.showWarningMessage('Soundcheck CLI was not found. Install it to use the extension.', 'Install CLI');
+      if (action === 'Install CLI') await vscode.commands.executeCommand('soundcheck.installCLI');
+    }
+  });
 }
 
 export function deactivate(): void {}

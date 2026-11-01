@@ -2,9 +2,11 @@ import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { DoctorReport, DetailedResolution, RunPromptResult, FixReport } from './types';
 
 export class SoundcheckCLI {
+  public static installedPath: string | undefined;
   public static resolveBinary(): string {
     const configPath = vscode.workspace.getConfiguration('soundcheck').get<string>('binaryPath');
     if (configPath && fs.existsSync(configPath)) {
@@ -19,7 +21,14 @@ export class SoundcheckCLI {
       }
     }
 
-    return 'soundcheck';
+    return this.installedPath && fs.existsSync(this.installedPath) ? this.installedPath : 'soundcheck';
+  }
+
+  public static async isAvailable(): Promise<boolean> {
+    return new Promise(resolve => cp.execFile(this.resolveBinary(), ['version'], {
+      timeout: 10000,
+      env: { ...process.env, PATH: [process.env.PATH, '/opt/homebrew/bin', '/usr/local/bin', path.join(os.homedir(), '.local', 'bin')].join(path.delimiter) },
+    }, err => resolve(!err)));
   }
 
   public static async runDoctor(): Promise<DoctorReport> {
@@ -74,7 +83,7 @@ export class SoundcheckCLI {
           maxBuffer: 10 * 1024 * 1024,
           env: {
             ...process.env,
-            PATH: `${process.env.PATH}:/opt/homebrew/bin:/usr/local/bin:${process.env.HOME}/.local/bin:${process.env.HOME}/go/bin`,
+            PATH: [process.env.PATH, '/opt/homebrew/bin', '/usr/local/bin', path.join(os.homedir(), '.local', 'bin'), path.join(os.homedir(), 'go', 'bin')].join(path.delimiter),
           },
         },
         (error, stdout, stderr) => {
