@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Orca Plugin (`editors/orca`)**:
+  - Sidebar panel and command palette entry that run `soundcheck doctor --json` and show the report.
+  - Manifest format 2, `trusted-worker` execution profile, no requested capabilities.
+- **README sections** for the VS Code extension, with its [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck), and for the Orca plugin.
+
+---
+
 ## [2.0.0] - 2026-10-31
 
 ### Added
