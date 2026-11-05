@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soundcheck</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 12px;
+        font: 13px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+        background: var(--orca-background, #1e1e1e);
+        color: var(--orca-foreground, #d4d4d4);
+      }
+      button {
+        font: inherit;
+        padding: 4px 10px;
+        border: 1px solid var(--orca-primary, #4f8cff);
+        background: var(--orca-primary, #4f8cff);
+        color: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:disabled { opacity: 0.5; cursor: default; }
+      #status { margin: 8px 0; opacity: 0.8; }
+      #error { color: #f08080; white-space: pre-wrap; }
+      pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+        margin: 8px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="run" type="button">Run preflight check</button>
+    <div id="status">No run yet.</div>
+    <div id="error"></div>
+    <pre id="report"></pre>
+    <script src="app.js"></script>
+  </body>
+</html>
