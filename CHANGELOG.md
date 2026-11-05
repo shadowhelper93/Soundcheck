@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.0.1] - 2026-11-05
+
+### Added
+- **VS Code Extension (v2.0.1)**:
+  - Automatic detection of the `soundcheck` CLI on startup, with an **Install CLI** action.
+  - Installer downloads the latest release and verifies its SHA-256 checksum before installing.
+  - Extension icons.
+  - Marketplace listing: [SinaMashini.soundcheck](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck).
+- **CLI**: ASCII banner on `soundcheck --help` and `soundcheck doctor` for wide terminals.
+- **Agent skill**: `skills/soundcheck` for using Soundcheck from coding agents.
+
+### Changed
+- Version bumped to 2.0.1 across the CLI, HTTP server, and web UI.
+
+### Fixed
+- `soundcheck upgrade` targets the correct repository and handles releases that are not yet published.
+- CI: fixed the budget build step, golangci-lint version, and Windows test compatibility.
+
+---
+
+## [Unreleased]
+
+### Added
+- **Orca Plugin (`editors/orca`)**:
+  - Sidebar panel and command palette entry that run `soundcheck doctor --json` and show the report.
+  - Manifest format 2, `trusted-worker` execution profile, no requested capabilities.
+- **README sections** for the VS Code extension, with its [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck), and for the Orca plugin.
+
+---
+
 ## [2.0.0] - 2026-10-31
 
 ### Added
