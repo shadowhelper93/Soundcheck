@@ -6,13 +6,12 @@ and shows the result in a sidebar panel.
 
 ## What it adds
 
-- **Soundcheck** sidebar panel with a *Run preflight check* button and the last result.
-- **Soundcheck: Run preflight check** command in the command palette.
+- **Soundcheck** sidebar panel with a *Run preflight check* button, diagnostic dashboard (adapters, health tiers, and zero-token role assignments), and collapsible raw JSON output.
+- **Soundcheck: Run preflight check** command in the command palette (`doctor.run`).
 
 ## Requirements
 
-The `soundcheck` binary must be on your `PATH`. See the
-[Soundcheck installation steps](../../README.md#installation).
+The `soundcheck` binary must be on your `PATH`, or configured via the `SOUNDCHECK_PATH` or `SOUNDCHECK_BIN` environment variable. See the [Soundcheck installation steps](../../README.md#installation).
 
 ## Permissions
 
@@ -26,7 +25,22 @@ with no shell and no network access of its own. It requests no capabilities.
 | --- | --- |
 | `orca-plugin.json` | Plugin manifest (format 2) |
 | `worker/main.mjs` | Runs `soundcheck doctor --json`, keeps the latest report, answers the panel |
-| `panel/index.html`, `panel/app.js` | Panel UI; renders output as text only |
+| `worker/main.test.mjs` | Automated unit tests for worker logic |
+| `panel/index.html`, `panel/app.js` | Panel UI; renders diagnostic health dashboard and raw report |
+
+## Testing & Validation
+
+Validate the plugin manifest:
+```bash
+orca plugin validate editors/orca
+```
+
+Run plugin tests with Orca or Node:
+```bash
+orca plugin test editors/orca
+# or
+node --test editors/orca/worker/main.test.mjs
+```
 
 ## Publishing
 

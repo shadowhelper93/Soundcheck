@@ -11,7 +11,7 @@ import { promisify } from 'node:util'
 
 const execFileAsync = promisify(execFile)
 
-const SOUNDCHECK_BIN = 'soundcheck'
+const SOUNDCHECK_BIN = process.env.SOUNDCHECK_BIN || process.env.SOUNDCHECK_PATH || 'soundcheck'
 const DOCTOR_TIMEOUT_MS = 120_000
 const MAX_OUTPUT_BYTES = 4 * 1024 * 1024
 
