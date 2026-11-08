@@ -99,12 +99,14 @@ Extension source and full documentation: [`editors/vscode`](editors/vscode/READM
 
 ## Orca Plugin
 
-[Orca](https://www.onorca.dev) users can run Soundcheck's preflight check from a sidebar panel. The plugin source is in [`editors/orca`](editors/orca/README.md).
+[Orca](https://www.onorca.dev) users can run Soundcheck's preflight check from a sidebar panel with live health diagnostic cards and zero-token role assignments. The plugin source is in [`editors/orca`](editors/orca/README.md) and exposed at repository root via [`orca-plugin.json`](orca-plugin.json).
 
-- **Soundcheck** panel: a *Run preflight check* button and the last report.
-- **Soundcheck: Run preflight check** command in the command palette.
+- **Install from Git**: In Orca Settings → Plugins → Install from Git: `https://github.com/shadowhelper93/Soundcheck`
+- **Install from Folder**: Choose the Soundcheck repository root folder.
+- **Soundcheck** panel: a *Run preflight check* button, diagnostic health cards, and collapsible raw report.
+- **Soundcheck: Run preflight check** command in the command palette (`doctor.run`).
 
-The `soundcheck` binary must be on your `PATH`. The plugin runs with full access on your machine (`trusted-worker`), and only runs `soundcheck doctor --json`.
+The `soundcheck` binary must be on your `PATH` or configured via `SOUNDCHECK_PATH` / `SOUNDCHECK_BIN`. The plugin runs with full access on your machine (`trusted-worker`), and only runs `soundcheck doctor --json`.
 
 ---
 
