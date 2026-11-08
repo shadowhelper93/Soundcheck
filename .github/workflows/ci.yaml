@@ -45,6 +45,9 @@ jobs:
       - name: Run golangci-lint
         run: make lint
 
+      - name: Run Orca plugin tests
+        run: node --test editors/orca/worker/main.test.mjs
+
   test:
     name: Test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soundcheck</title>
+    <style>
+      :root {
+        --color-bg: var(--orca-background, #18181b);
+        --color-fg: var(--orca-foreground, #f4f4f5);
+        --color-muted: var(--orca-muted, #a1a1aa);
+        --color-card: var(--orca-card-background, rgba(255, 255, 255, 0.04));
+        --color-border: var(--orca-border, rgba(255, 255, 255, 0.1));
+        --color-primary: var(--orca-primary, #3b82f6);
+        --color-primary-hover: var(--orca-primary-hover, #2563eb);
+        --color-success: #10b981;
+        --color-warning: #f59e0b;
+        --color-error: #ef4444;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 14px;
+        font: 13px/1.5 system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+        background: var(--color-bg);
+        color: var(--color-fg);
+      }
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      button.btn-primary {
+        font: inherit;
+        font-weight: 500;
+        padding: 6px 12px;
+        border: 1px solid var(--color-primary);
+        background: var(--color-primary);
+        color: #ffffff;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      button.btn-primary:hover:not(:disabled) {
+        background: var(--color-primary-hover);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      #status {
+        font-size: 12px;
+        color: var(--color-muted);
+      }
+      #error {
+        color: var(--color-error);
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        display: none;
+      }
+      .section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--color-muted);
+        margin: 14px 0 8px 0;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .summary-card {
+        background: var(--color-card);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      .summary-card .label {
+        font-size: 11px;
+        color: var(--color-muted);
+      }
+      .summary-card .value {
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 2px;
+      }
+      .adapter-list, .role-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .card {
+        background: var(--color-card);
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        padding: 10px 12px;
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+      }
+      .card-title {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .badge {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 2px 6px;
+        border-radius: 9999px;
+      }
+      .badge-healthy {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--color-success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+      }
+      .badge-degraded {
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--color-warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+      }
+      .badge-down, .badge-failed {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--color-error);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .tiers {
+        display: flex;
+        gap: 4px;
+        margin-top: 8px;
+      }
+      .tier-pill {
+        font-size: 10px;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .tier-passed {
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--color-success);
+      }
+      .tier-failed {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--color-error);
+      }
+      .tier-pending, .tier-skipped {
+        background: rgba(161, 161, 170, 0.15);
+        color: var(--color-muted);
+      }
+      .role-details {
+        font-size: 12px;
+        color: var(--color-muted);
+        margin-top: 4px;
+      }
+      details {
+        margin-top: 14px;
+        border: 1px solid var(--color-border);
+        border-radius: 6px;
+        background: var(--color-card);
+      }
+      details summary {
+        padding: 8px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--color-muted);
+      }
+      details summary:hover {
+        color: var(--color-fg);
+      }
+      pre {
+        margin: 0;
+        padding: 10px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+        border-top: 1px solid var(--color-border);
+        max-height: 240px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="actions">
+        <button id="run" class="btn-primary" type="button">Run preflight check</button>
+      </div>
+      <div id="status">No run yet.</div>
+      <div id="error"></div>
+    </div>
+
+    <div id="dashboard" style="display: none;">
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="label">Agents Online</div>
+          <div class="value" id="summary-agents">-</div>
+        </div>
+        <div class="summary-card">
+          <div class="label">Quirks Protected</div>
+          <div class="value" id="summary-quirks">-</div>
+        </div>
+      </div>
+
+      <div class="section-title">CLI Adapters</div>
+      <div id="adapters" class="adapter-list"></div>
+
+      <div class="section-title">Role Assignments</div>
+      <div id="roles" class="role-list"></div>
+    </div>
+
+    <details id="raw-details">
+      <summary>Raw Report Output</summary>
+      <pre id="report"></pre>
+    </details>
+
+    <script src="app.js"></script>
+  </body>
+</html>

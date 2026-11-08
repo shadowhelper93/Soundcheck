@@ -34,7 +34,8 @@ Soundcheck tests your installed coding agent CLIs (`claude`, `codex`, `opencode`
   - **L3 Model**: Live model generation test.
 - **Single Static Binary**: Full interactive React web UI embedded into a single static executable (~8.3 MB, budget ≤ 20 MB). Zero external runtime dependencies.
 - **Model Context Protocol (MCP)**: Native stdio MCP server (`soundcheck mcp`) providing preflight health check, role resolution, and capability inspection directly to Claude Desktop, Cursor, and Antigravity.
-- **VS Code Extension**: Official extension in `editors/vscode` featuring live health status bar, agent inspector, headless prompt runner, and embedded web dashboard.
+- **VS Code Extension**: Official extension in `editors/vscode` featuring live health status bar, agent inspector, headless prompt runner, and embedded web dashboard. [Install it from the Marketplace](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck).
+- **Orca Plugin**: A community plugin in `editors/orca` that runs the preflight check from a sidebar panel in [Orca](https://www.onorca.dev).
 
 ---
 
@@ -73,6 +74,37 @@ cd soundcheck
 make build
 ./bin/soundcheck doctor
 ```
+
+---
+
+## VS Code Extension
+
+Soundcheck is available on the Visual Studio Marketplace:
+
+**[SinaMashini.soundcheck](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck)**
+
+Install it from VS Code's Extensions view (search for "Soundcheck"), or from the Marketplace page above. The extension works with Visual Studio Code and Antigravity IDE.
+
+- **Activity Bar view**: live status of each CLI adapter and the resolved `primary`, `subagent`, `auxiliary`, and `reviewer` roles.
+- **Status bar**: overall health at a glance, with a quick menu of actions.
+- **Commands**: run a doctor check, resolve roles, execute a prompt with auto-failover, remediate a broken adapter, discover fallbacks, open the web dashboard, or open an interactive adapter terminal.
+
+On startup the extension looks for the `soundcheck` CLI. If it is missing, choose **Install CLI** (or run **Soundcheck: Install Soundcheck CLI** from the Command Palette). The installer verifies the release's SHA-256 checksum before installing. You can also set `soundcheck.binaryPath` to use a binary you installed yourself.
+
+Settings: `soundcheck.binaryPath`, `soundcheck.autoDoctorOnStartup` (default `true`), and `soundcheck.serverPort` (default `3000`, for the dashboard).
+
+Extension source and full documentation: [`editors/vscode`](editors/vscode/README.md).
+
+---
+
+## Orca Plugin
+
+[Orca](https://www.onorca.dev) users can run Soundcheck's preflight check from a sidebar panel. The plugin source is in [`editors/orca`](editors/orca/README.md).
+
+- **Soundcheck** panel: a *Run preflight check* button and the last report.
+- **Soundcheck: Run preflight check** command in the command palette.
+
+The `soundcheck` binary must be on your `PATH`. The plugin runs with full access on your machine (`trusted-worker`), and only runs `soundcheck doctor --json`.
 
 ---
 
@@ -226,6 +258,9 @@ Soundcheck follows a strict **Hexagonal Architecture** with a **Pure Functional 
 - [Adapter Authoring Guide](docs/ADAPTER_AUTHORING.md) — How to define new CLI adapters and probe tiers.
 - [Quirk Authoring Guide](docs/QUIRK_AUTHORING.md) — How to catalog deceptive errors and remediation recipes.
 - [Contributor Guidelines](CONTRIBUTING.md) — Package lanes, coding rules, and quality gates.
+- [VS Code Extension](editors/vscode/README.md) — Extension features, commands, and settings.
+- [Orca Plugin](editors/orca/README.md) — Orca plugin setup, permissions, and publishing notes.
+- [Changelog](CHANGELOG.md) — Release history.
 
 ---
 
