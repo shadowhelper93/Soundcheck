@@ -4,15 +4,16 @@
   "execution": "trusted-worker",
   "id": "soundcheck",
   "name": "Soundcheck",
-  "version": "0.1.0",
+  "version": "2.1.0",
   "description": "Runs Soundcheck's preflight health check (soundcheck doctor) on the coding agent CLIs installed on this machine and shows the result in a sidebar panel.",
   "author": {
     "name": "shadowhelper93",
     "url": "https://github.com/shadowhelper93"
   },
-  "repository": "https://github.com/shadowhelper93/soundcheck",
+  "publisher": "shadowhelper93",
+  "repository": "https://github.com/shadowhelper93/Soundcheck",
   "license": "Apache-2.0",
-  "homepage": "https://github.com/shadowhelper93/soundcheck",
+  "homepage": "https://github.com/shadowhelper93/Soundcheck",
   "engines": {
     "orca": ">=1.4.248"
   },

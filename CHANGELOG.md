@@ -27,13 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
+## [2.1.0] - 2026-11-08
 
 ### Added
-- **Orca Plugin (`editors/orca`)**:
-  - Sidebar panel and command palette entry that run `soundcheck doctor --json` and show the report.
-  - Manifest format 2, `trusted-worker` execution profile, no requested capabilities.
-- **README sections** for the VS Code extension, with its [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=SinaMashini.soundcheck), and for the Orca plugin.
+- **Orca Plugin (`orca-plugin.json` & `editors/orca`)**:
+  - Root `orca-plugin.json` (format 2, `trusted-worker`) enabling direct installation via Git URL (`https://github.com/shadowhelper93/Soundcheck`) and native folder picker ("Install from Folder...").
+  - Sidebar panel with live diagnostic dashboard (online agents, quirks protected, CLI adapter status badges, L0-L3 tier pills, zero-token role assignments) and collapsible raw report details.
+  - Command palette entry `Soundcheck: Run preflight check` (`doctor.run`).
+  - Configurable binary path resolution via `SOUNDCHECK_BIN` or `SOUNDCHECK_PATH` environment variables.
+  - Automated unit test suite (`editors/orca/worker/main.test.mjs`) for doctor output parsing, process exit handling, and worker lifecycle.
+  - CI workflow integration for automated Orca plugin testing.
+- **README sections** for the VS Code extension and Orca plugin.
+
+### Changed
+- Version bumped to 2.1.0 across CLI, HTTP server, Web UI, and Orca plugin manifests.
 
 ---
 

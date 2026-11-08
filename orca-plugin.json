@@ -1,0 +1,39 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json",
+  "manifestVersion": 2,
+  "execution": "trusted-worker",
+  "id": "soundcheck",
+  "name": "Soundcheck",
+  "version": "2.1.0",
+  "description": "Runs Soundcheck's preflight health check (soundcheck doctor) on the coding agent CLIs installed on this machine and shows the result in a sidebar panel.",
+  "author": {
+    "name": "shadowhelper93",
+    "url": "https://github.com/shadowhelper93"
+  },
+  "publisher": "shadowhelper93",
+  "repository": "https://github.com/shadowhelper93/Soundcheck",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/shadowhelper93/Soundcheck",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "main": "editors/orca/worker/main.mjs",
+  "pluginApi": 1,
+  "contributes": {
+    "panels": [
+      {
+        "id": "soundcheck",
+        "title": "Soundcheck",
+        "icon": "check",
+        "entry": "editors/orca/panel/index.html"
+      }
+    ],
+    "commands": [
+      {
+        "id": "doctor.run",
+        "title": "Soundcheck: Run preflight check",
+        "when": "global"
+      }
+    ]
+  }
+}
