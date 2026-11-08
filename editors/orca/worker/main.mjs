@@ -29,19 +29,22 @@ export function parseDoctorOutput(stdout) {
 }
 
 // Builds the result the panel shows. `failure` is the error thrown by execFile,
-// if any: soundcheck may exit non-zero when an adapter is unhealthy but still
-// print a report, so the stdout is kept whenever it is present.
+// if any: soundcheck may exit non-zero (e.g. exit code 1 or 2) when an adapter
+// is unhealthy/degraded, but still outputs a valid JSON report. In that case,
+// the diagnostic report is kept and no runner error is raised.
 export function buildResult({ stdout, failure, startedAt, finishedAt }) {
   const parsed = parseDoctorOutput(stdout ?? failure?.stdout)
   const result = { startedAt, finishedAt, ...parsed }
   if (failure) {
     result.ok = false
     result.exitCode = typeof failure.code === 'number' ? failure.code : null
-    result.error = failure.code === 'ENOENT'
-      ? `"${SOUNDCHECK_BIN}" was not found on PATH. Install Soundcheck first.`
-      : failure.killed
-        ? 'soundcheck doctor timed out.'
-        : String(failure.message ?? failure)
+    if (!result.report) {
+      result.error = failure.code === 'ENOENT'
+        ? `"${SOUNDCHECK_BIN}" was not found on PATH. Install Soundcheck first.`
+        : failure.killed
+          ? 'soundcheck doctor timed out.'
+          : (failure.stderr?.trim() || String(failure.message ?? failure))
+    }
   } else {
     result.ok = true
     result.exitCode = 0
