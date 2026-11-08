@@ -31,6 +31,29 @@
     return pill
   }
 
+  function getAdapterStatus(adapter) {
+    if (adapter.status) return adapter.status
+    const probes = adapter.probes || adapter.tiers || {}
+    const l0 = probes.L0
+    const l1 = probes.L1
+    const l2 = probes.L2
+    const l3 = probes.L3
+
+    if (!adapter.installed || l0?.status === 'failed') {
+      return 'down'
+    }
+    if (l1?.status === 'failed' || l1?.errorClass === 'unauthenticated') {
+      return 'down'
+    }
+    if (l2?.status === 'failed' || l3?.status === 'failed') {
+      return 'degraded'
+    }
+    if (l0?.status === 'passed' && l1?.status === 'passed') {
+      return 'healthy'
+    }
+    return 'unknown'
+  }
+
   function renderDashboard(report) {
     if (!report || typeof report !== 'object' || (!report.adapters && !report.summary)) {
       dashboardEl.style.display = 'none'
@@ -61,18 +84,22 @@
         title.className = 'card-title'
         title.textContent = adapter.name || adapter.id || 'Adapter'
 
-        const statusType = adapter.status === 'healthy' ? 'healthy' : adapter.status === 'degraded' ? 'degraded' : 'down'
-        const badge = createBadge(adapter.status || 'unknown', statusType)
+        const status = getAdapterStatus(adapter)
+        const statusType = status === 'healthy' ? 'healthy' : status === 'degraded' ? 'degraded' : 'down'
+        const badge = createBadge(status, statusType)
 
         header.appendChild(title)
         header.appendChild(badge)
         card.appendChild(header)
 
-        if (adapter.tiers) {
+        const probes = adapter.probes || adapter.tiers
+        if (probes) {
           const tiersContainer = document.createElement('div')
           tiersContainer.className = 'tiers'
           for (const tierKey of ['L0', 'L1', 'L2', 'L3']) {
-            tiersContainer.appendChild(createTierPill(tierKey, adapter.tiers[tierKey]))
+            if (probes[tierKey]) {
+              tiersContainer.appendChild(createTierPill(tierKey, probes[tierKey]))
+            }
           }
           card.appendChild(tiersContainer)
         }

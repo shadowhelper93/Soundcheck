@@ -28,7 +28,9 @@ func newDoctorCmd(opts *RootOptions, injected *app.App) *cobra.Command {
 				return err
 			}
 
-			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "warning: live smoke probes may use provider quota or incur charges")
+			if (!opts.JSON && !opts.NDJSON) || opts.Verbose {
+				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "warning: live smoke probes may use provider quota or incur charges")
+			}
 			dopts := buildDoctorOptions(deep, force)
 			dopts = append(dopts, app.WithDoctorSmoke())
 			report, err := a.Doctor(ctx, dopts...)

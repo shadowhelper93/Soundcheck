@@ -60,7 +60,7 @@ test('buildResult: timeout failure', () => {
 test('buildResult: degraded check exit code 2 with report in failure.stdout', () => {
   const startedAt = '2026-11-08T18:00:00.000Z'
   const finishedAt = '2026-11-08T18:00:01.000Z'
-  const failure = new Error('Command failed: soundcheck doctor --json')
+  const failure = new Error('Command failed: soundcheck doctor --json\nwarning: live smoke probes may use provider quota or incur charges')
   failure.code = 2
   failure.stdout = JSON.stringify({ summary: { functionalAgents: 0 } })
 
@@ -68,7 +68,21 @@ test('buildResult: degraded check exit code 2 with report in failure.stdout', ()
   assert.equal(result.ok, false)
   assert.equal(result.exitCode, 2)
   assert.deepEqual(result.report, { summary: { functionalAgents: 0 } })
-  assert.equal(result.error, 'Command failed: soundcheck doctor --json')
+  assert.equal(result.error, undefined)
+})
+
+test('buildResult: execution failure without report sets error message', () => {
+  const startedAt = '2026-11-08T18:00:00.000Z'
+  const finishedAt = '2026-11-08T18:00:01.000Z'
+  const failure = new Error('Command failed: soundcheck doctor --json')
+  failure.code = 1
+  failure.stderr = 'fatal: configuration error'
+
+  const result = buildResult({ failure, startedAt, finishedAt })
+  assert.equal(result.ok, false)
+  assert.equal(result.exitCode, 1)
+  assert.equal(result.report, undefined)
+  assert.equal(result.error, 'fatal: configuration error')
 })
 
 test('activate and deactivate register handlers and clean up state', async () => {

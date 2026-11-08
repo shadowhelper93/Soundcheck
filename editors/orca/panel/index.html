@@ -6,12 +6,16 @@
     <title>Soundcheck</title>
     <style>
       :root {
+        color-scheme: dark light;
         --color-bg: var(--orca-background, #18181b);
         --color-fg: var(--orca-foreground, #f4f4f5);
-        --color-muted: var(--orca-muted, #a1a1aa);
-        --color-card: var(--orca-card-background, rgba(255, 255, 255, 0.04));
+        --color-muted: var(--orca-muted-foreground, #a1a1aa);
+        --color-muted-bg: var(--orca-muted, rgba(255, 255, 255, 0.06));
+        --color-card: var(--orca-card, rgba(255, 255, 255, 0.04));
+        --color-card-fg: var(--orca-card-foreground, var(--orca-foreground, #f4f4f5));
         --color-border: var(--orca-border, rgba(255, 255, 255, 0.1));
         --color-primary: var(--orca-primary, #3b82f6);
+        --color-primary-fg: var(--orca-primary-foreground, #ffffff);
         --color-primary-hover: var(--orca-primary-hover, #2563eb);
         --color-success: #10b981;
         --color-warning: #f59e0b;
@@ -44,7 +48,7 @@
         padding: 6px 12px;
         border: 1px solid var(--color-primary);
         background: var(--color-primary);
-        color: #ffffff;
+        color: var(--color-primary-fg);
         border-radius: 6px;
         cursor: pointer;
         transition: background 0.15s ease;
@@ -90,6 +94,7 @@
         border: 1px solid var(--color-border);
         border-radius: 6px;
         padding: 8px 10px;
+        color: var(--color-fg);
       }
       .summary-card .label {
         font-size: 11px;
@@ -98,6 +103,7 @@
       .summary-card .value {
         font-size: 18px;
         font-weight: 600;
+        color: var(--color-fg);
         margin-top: 2px;
       }
       .adapter-list, .role-list {
@@ -107,6 +113,7 @@
       }
       .card {
         background: var(--color-card);
+        color: var(--color-card-fg);
         border: 1px solid var(--color-border);
         border-radius: 6px;
         padding: 10px 12px;
@@ -120,6 +127,7 @@
       .card-title {
         font-weight: 600;
         font-size: 13px;
+        color: var(--color-fg);
       }
       .badge {
         font-size: 10px;
@@ -164,7 +172,7 @@
         color: var(--color-error);
       }
       .tier-pending, .tier-skipped {
-        background: rgba(161, 161, 170, 0.15);
+        background: var(--color-muted-bg);
         color: var(--color-muted);
       }
       .role-details {
@@ -197,6 +205,8 @@
         border-top: 1px solid var(--color-border);
         max-height: 240px;
         overflow-y: auto;
+        color: var(--color-fg);
+        background: var(--color-card);
       }
     </style>
   </head>
